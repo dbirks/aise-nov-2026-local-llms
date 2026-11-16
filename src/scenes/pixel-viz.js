@@ -91,19 +91,24 @@ function buildMoE(scene, emit) {
   const rPos = l => new THREE.Vector3(RX, l * DY, 0);
   const ex = new THREE.InstancedMesh(new THREE.BoxGeometry(1.1, 0.5, 1.1), lam(0xffffff), L * E);
   const routers = new THREE.InstancedMesh(new THREE.BoxGeometry(0.62, 0.62, 0.62), lam(0x333333), L);
-  const beams = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.1, 0.1), lam(0x111111), L * 4);
+  const beams = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.16, 0.16), new THREE.MeshBasicMaterial({ color: 0x141414 }), L * 8); // unlit so hops stay solid through the dither
+  beams.frustumCulled = false; // instance matrices move after the one-off bounding-sphere computation
   const tok = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), lam(0x0a0a0a));
   const plateMat = new THREE.MeshBasicMaterial({ color: 0xd0d0d0, transparent: true, opacity: 0.14, depthWrite: false });
-  scene.add(ex, routers, beams, tok);
+  const BUS_Y = -0.66, BUS_Z = 2.3; // in front of the front expert row, else the downward camera hides it
+  const bus = new THREE.Mesh(new THREE.BoxGeometry(7.7, 0.12, 0.36), new THREE.MeshBasicMaterial({ color: 0x1e1e1e })); // thin bus bar under the stack (residency 'ram')
+  bus.position.set(-0.45, BUS_Y, BUS_Z); bus.scale.set(1, 0.001, 1);
+  scene.add(ex, routers, beams, tok, bus);
   for (let l = 0; l < L; l++) {
     const p = new THREE.Mesh(new THREE.BoxGeometry(8.8, 0.04, 3.4), plateMat); p.position.set(-0.45, l * DY - 0.3, 0); scene.add(p);
     routers.setMatrixAt(l, M.compose(rPos(l), Q, S.setScalar(1)));
     for (let e = 0; e < E; e++) ex.setMatrixAt(l * E + e, M.compose(ePos(l, e), Q, S.setScalar(1)));
   }
-  const cLight = new THREE.Color(0xeaeaea), cUse = new THREE.Color(0x8a8a8a), cAct = new THREE.Color(0x141414), tmp = new THREE.Color();
-  const X = new THREE.Vector3(1, 0, 0), dir = new THREE.Vector3(), q = new THREE.Quaternion();
+  const cLight = new THREE.Color(0xeaeaea), cUse = new THREE.Color(0x8a8a8a), cAct = new THREE.Color(0x141414), cRam = new THREE.Color(0xb2b2b2), tmp = new THREE.Color();
+  const X = new THREE.Vector3(1, 0, 0), dir = new THREE.Vector3(), q = new THREE.Quaternion(), mid = new THREE.Vector3();
   const cnt = new Float32Array(L * E), act = new Float32Array(L * E), bg = new Float32Array(L * 4);
   let k = 2, playing = true, usage = false, tokIdx = 0, t = 0, choice = [], counted = -1, tokY = -1.2, last = '';
+  let residency = 'resident', busS = 0;
   function route() {
     choice = [];
     for (let l = 0; l < L; l++) {
@@ -123,31 +128,41 @@ function buildMoE(scene, emit) {
       tok.position.set(RX - 1.0, tokY, 0);
       tok.scale.setScalar(done ? Math.max(0.001, 1 - (t - L * STEP) / 0.3) : 1);
       let maxC = 1; for (let i = 0; i < L * E; i++) maxC = Math.max(maxC, cnt[i]);
+      busS += ((residency === 'ram' ? 1 : 0) - busS) * Math.min(1, dt * 6);
+      bus.scale.setScalar(Math.max(0.001, busS)); // scale whole bar in/out (a flat one would still show its footprint)
       for (let l = 0; l < L; l++) for (let e = 0; e < E; e++) {
         const i = l * E + e, on = live && l === cl && choice[l].includes(e);
         act[i] += ((on ? 1 : 0) - act[i]) * Math.min(1, dt * (on ? 12 : 4));
-        tmp.copy(cLight); if (usage) tmp.lerp(cUse, cnt[i] / maxC);
+        tmp.copy(residency === 'ram' ? cRam : cLight); if (usage) tmp.lerp(cUse, cnt[i] / maxC);
         ex.setColorAt(i, tmp.lerp(cAct, act[i]));
       }
+      const hide = idx => beams.setMatrixAt(idx, M.compose(P.set(0, -50, 0), Q, S.setScalar(0.001)));
+      const seg = (idx, a, c, f) => {
+        dir.copy(c).sub(a);
+        const len = dir.length(); dir.normalize(); q.setFromUnitVectors(X, dir);
+        P.copy(a).addScaledVector(dir, len * f / 2); S.set(len * f, 1, 1);
+        beams.setMatrixAt(idx, M.compose(P, q, S));
+      };
       for (let l = 0; l < L; l++) for (let j = 0; j < 4; j++) {
-        const b = l * 4 + j, on = live && l === cl && j < choice[l].length;
+        const b = l * 4 + j, b2 = L * 4 + b, on = live && l === cl && j < choice[l].length;
         bg[b] += ((on ? 1 : 0) - bg[b]) * Math.min(1, dt * (on ? 9 : 14));
         if (j < choice[l].length && bg[b] > 0.01) {
-          const from = rPos(l); dir.copy(ePos(l, choice[l][j])).sub(from);
-          const len = dir.length(); dir.normalize(); q.setFromUnitVectors(X, dir);
-          P.copy(from).addScaledVector(dir, len * bg[b] / 2); S.set(len * bg[b], 1, 1);
-          beams.setMatrixAt(b, M.compose(P, q, S));
-        } else beams.setMatrixAt(b, M.compose(P.set(0, -50, 0), Q, S.setScalar(0.001)));
+          const from = rPos(l), to = ePos(l, choice[l][j]);
+          if (residency === 'ram') { // two-segment hop: router → bus bar → expert
+            seg(b, from, mid.set(to.x, BUS_Y, BUS_Z), bg[b]); seg(b2, mid, to, bg[b]);
+          } else { seg(b, from, to, bg[b]); hide(b2); }
+        } else { hide(b); hide(b2); }
       }
       ex.instanceColor.needsUpdate = true; beams.instanceMatrix.needsUpdate = true;
       if (playing && t > L * STEP + 0.5) next();
-      const st = { token: tokIdx, layer: live ? cl + 1 : 0, chosen: live ? choice[cl] : [], k, playing, usage, L, E };
+      const st = { token: tokIdx, layer: live ? cl + 1 : 0, chosen: live ? choice[cl] : [], k, playing, usage, residency, L, E };
       const key = JSON.stringify(st); if (key !== last) { last = key; emit(st); }
     },
     action(name, arg) {
       if (name === 'play') playing = !playing;
       if (name === 'k') { k = arg; route(); counted = -1; }
       if (name === 'usage') usage = arg;
+      if (name === 'residency') residency = arg;
       if (name === 'step') {
         playing = false;
         const cl = Math.floor(t / STEP);
@@ -168,18 +183,31 @@ function buildSpec(scene, emit) {
   const ghost = o => new THREE.MeshBasicMaterial({ color: 0x222222, transparent: true, opacity: o, depthWrite: false });
   const tslab = new THREE.Mesh(new THREE.BoxGeometry(1, 1.0, 1.6), ghost(0.2));
   const dslab = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.16, 1.2), ghost(0.4));
-  scene.add(row, dr, tslab, dslab);
+  // sampling mode: per-draft-token accept bar (height = min(1, p/q)) + dark uniform-draw marker
+  const bar = new THREE.InstancedMesh(new THREE.BoxGeometry(0.12, 1, 0.12), lam(0xffffff), KMAX);
+  const mark = new THREE.InstancedMesh(new THREE.BoxGeometry(0.4, 0.07, 0.24), lam(0x0d0d0d), KMAX);
+  bar.frustumCulled = mark.frustumCulled = false; // instances move after the one-off bounding sphere
+  scene.add(row, dr, tslab, dslab, bar, mark);
   [0, YD].forEach(y => { const m = new THREE.Mesh(new THREE.BoxGeometry(T * DX + 0.6, 0.04, 1.4), new THREE.MeshBasicMaterial({ color: 0x9a9a9a, transparent: true, opacity: 0.22, depthWrite: false })); m.position.y = y - 0.4; scene.add(m); });
   const cPrompt = new THREE.Color(0x9a9a9a), cAcc = new THREE.Color(0x3c3c3c), cTgt = new THREE.Color(0x0a0a0a), cDraft = new THREE.Color(0xdedede), cRej = new THREE.Color(0x6e6e6e);
+  const cBarA = new THREE.Color(0xcacaca), cBarR = new THREE.Color(0x404040);
   const rowBorn = new Float32Array(T), rowFrom = new Float32Array(T), rowCol = Array(T).fill(cPrompt);
   const d = Array.from({ length: KMAX }, () => ({ y: YD, ty: YD, s: 0, ts: 0, st: 0 }));
+  const bh = new Float32Array(KMAX).fill(1), bu = new Float32Array(KMAX), bs = new Float32Array(KMAX);
   const q = new THREE.Quaternion(), eu = new THREE.Euler();
-  let n, K = 5, p = 0.7, phase, pt = 0, a = 0, playing = true, clock = 0, rounds = 0, stepReq = false, last = '';
+  let n, K = 5, p = 0.7, phase, pt = 0, a = 0, playing = true, clock = 0, rounds = 0, stepReq = false, last = '', mode = 'greedy';
   function start() {
     pt = 0;
     if (n + K + 1 > T) { phase = 'full'; return; }
     phase = 'draft'; a = K;
-    for (let i = 0; i < K; i++) if (r() > p) { a = i; break; }
+    if (mode === 'sampling') {
+      // synthetic seeded p (draft) / q (target) per token; accept iff u ≤ min(1, p/q)
+      for (let i = 0; i < K; i++) {
+        const qq = 0.25 + 0.7 * r(), pp = qq * p * (0.6 + 0.8 * r());
+        bh[i] = Math.min(1, pp / qq); bu[i] = r();
+        if (a === K && bu[i] > bh[i]) a = i;
+      }
+    } else for (let i = 0; i < K; i++) if (r() > p) { a = i; break; }
     d.forEach(o => { o.y = o.ty = YD; o.s = o.ts = 0; o.st = 0; });
   }
   function reset() {
@@ -229,13 +257,23 @@ function buildSpec(scene, emit) {
         dr.setMatrixAt(i, M.compose(P, q, S));
         dr.setColorAt(i, [cDraft, cAcc, cRej, cRej][o.st]);
       }
+      for (let i = 0; i < KMAX; i++) {
+        const on = mode === 'sampling' && i <= a && i < K && phase === 'check' && (!playing || pt >= i * 0.22 + 0.05); // paused: show the evaluated tests at once (pt is frozen)
+        bs[i] += ((on ? 1 : 0) - bs[i]) * Math.min(1, dt * (on ? 12 : 9));
+        const h = 0.95 * bh[i] * bs[i], y0 = YD + 0.32;
+        P.set(xOf(n + i) + 0.31, y0 + h / 2, 0.42); S.set(1, Math.max(0.001, h), 1);
+        bar.setMatrixAt(i, M.compose(P, Q, S)); bar.setColorAt(i, i === a ? cBarR : cBarA);
+        P.set(xOf(n + i) + 0.31, y0 + 0.95 * bu[i], 0.42); S.setScalar(Math.max(0.001, bs[i]));
+        mark.setMatrixAt(i, M.compose(P, Q, S));
+      }
       for (let i = 0; i < T; i++) {
         const b = rowBorn[i], f = b < 0 || clock < b ? 0 : Math.min(1, (clock - b) / 0.3);
         P.set(xOf(i), rowFrom[i] * (1 - f) ** 2, 0); S.setScalar(f > 0 ? 1 : 0.001);
         row.setMatrixAt(i, M.compose(P, Q, S)); row.setColorAt(i, rowCol[i]);
       }
       row.instanceMatrix.needsUpdate = dr.instanceMatrix.needsUpdate = row.instanceColor.needsUpdate = dr.instanceColor.needsUpdate = true;
-      const st = { phase, K, p, a, rounds, gen: n - PR, playing };
+      bar.instanceMatrix.needsUpdate = bar.instanceColor.needsUpdate = mark.instanceMatrix.needsUpdate = true;
+      const st = { phase, mode, K, p, a, rounds, gen: n - PR, playing };
       const key = JSON.stringify(st); if (key !== last) { last = key; emit(st); }
     },
     action(name, arg) {
@@ -244,6 +282,7 @@ function buildSpec(scene, emit) {
       if (name === 'restart') { reset(); playing = true; }
       if (name === 'K') { K = arg; reset(); }
       if (name === 'p') { p = arg; reset(); }
+      if (name === 'mode') { mode = arg; reset(); }
     },
   };
 }
@@ -453,6 +492,7 @@ function buildFlow(scene, emit) {
   const BW = { RAM: 1, Unified: 3, VRAM: 7 }, SZW = { FP16: 4, Q8: 2.1, Q4: 1.15 };
   let bw = 'Unified', wt = 'FP16', B = 1, playing = true, prog = 0, last = '';
   const rr = rng(7), g = gaussFn(rr), CORE = new THREE.Vector3(4.4, 1.6, 0), RCX = -4.6;
+  const CTX = 12, KVK = 0.05; // illustrative: KV bytes/step = B · ctx · KVK, in weight-fraction units
   const basin = new THREE.Mesh(new THREE.CylinderGeometry(2.3, 2.5, 0.4, 48), lam(0xc4c4c4)); basin.position.set(RCX, -0.2, 0);
   const NR = 2400, rp = new Float32Array(NR * 3), ra = new Float32Array(NR), rd = new Float32Array(NR), ry = new Float32Array(NR);
   for (let i = 0; i < NR; i++) { rd[i] = 0.15 + 2.0 * Math.sqrt(rr()); ra[i] = rr() * 6.283; ry[i] = 0.1 + Math.abs(g()) * 0.35; }
@@ -470,7 +510,18 @@ function buildFlow(scene, emit) {
   for (let i = 0; i < NRING; i++) { const a = Math.PI / 2 - i / NRING * Math.PI * 2; ring.setMatrixAt(i, M.compose(P.set(CORE.x + Math.cos(a) * 1.45, CORE.y + Math.sin(a) * 1.45, 0), Q, S.setScalar(1))); }
   const NO = 128, orbs = new THREE.InstancedMesh(new THREE.SphereGeometry(0.17, 12, 8), lam(0x111111), NO);
   const ox = new Float32Array(NO * 3), ov = new Float32Array(NO * 3), ol = new Float32Array(NO);
-  scene.add(basin, rPts, sPts, core, ring, orbs);
+  // ── KV stream: second, thinner particle stream from a basin that grows with context ──
+  let ctx = 1, kvLv = 0, curK = 0;
+  const kbasin = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.05, 0.45, 32), lam(0x9a9a9a));
+  kbasin.position.set(-1.9, -1.5, 0.2); kbasin.scale.set(0.4, 0.35, 0.4);
+  const kcurve = new THREE.CatmullRomCurve3([new THREE.Vector3(-1.9, -1.05, 0.2), new THREE.Vector3(-0.8, 0.5, 0.45), new THREE.Vector3(1.2, 1.3, 0.35), new THREE.Vector3(2.9, 1.5, 0.15), new THREE.Vector3(3.9, 1.55, 0)]);
+  const KNSmp = 120, kcp = kcurve.getSpacedPoints(KNSmp), kfr = kcurve.computeFrenetFrames(KNSmp, false);
+  const NPK = 520, ku = new Float32Array(NPK), ka = new Float32Array(NPK), kf = new Float32Array(NPK), kp = new Float32Array(NPK * 3);
+  for (let i = 0; i < NPK; i++) { ku[i] = rr(); ka[i] = rr() * 6.283; kf[i] = Math.sqrt(rr()); }
+  const kGeo = new THREE.BufferGeometry(); kGeo.setAttribute('position', new THREE.BufferAttribute(kp, 3));
+  const kMat = splatMat(0.4), kPts = new THREE.Points(kGeo, kMat); kPts.frustumCulled = false;
+  let kTube = null;
+  scene.add(basin, rPts, sPts, core, ring, orbs, kbasin, kPts);
   const cOn = new THREE.Color(0x1a1a1a), cOff = new THREE.Color(0xe0e0e0);
   let tube = null, curR = 0;
   const radOf = () => 0.12 + 0.11 * BW[bw];
@@ -482,8 +533,9 @@ function buildFlow(scene, emit) {
   }
   return {
     view: { target: [0, 1.1, 0], radius: 40, theta: 0.3, phi: 1.2, size: 4.4 },
-    resize(W, H) { rMat.uniforms.uSize.value = sMat.uniforms.uSize.value = Math.max(3, H * 0.012); },
+    resize(W, H) { rMat.uniforms.uSize.value = sMat.uniforms.uSize.value = kMat.uniforms.uSize.value = Math.max(3, H * 0.012); },
     update(dt) {
+      const kv = B * ctx * KVK; // weights read once per step; KV read per sequence per step
       const tR = radOf();
       if (Math.abs(tR - curR) > 0.003) {
         curR += (tR - curR) * Math.min(1, dt * 4);
@@ -505,9 +557,29 @@ function buildFlow(scene, emit) {
         sp[i * 3] = p.x + n.x * c + b.x * s; sp[i * 3 + 1] = p.y + n.y * c + b.y * s; sp[i * 3 + 2] = p.z + n.z * c + b.z * s;
       }
       sGeo.attributes.position.needsUpdate = true;
+      // KV level + basin + thin pipe + particles
+      const level = Math.min(1, kv / (0.6 * SZW[wt]));
+      kvLv += (level - kvLv) * Math.min(1, dt * 4);
+      const kb = 0.4 + 0.85 * kvLv;
+      kbasin.scale.set(kb, 0.3 + 1.2 * kvLv, kb);
+      const tK = 0.035 + 0.13 * Math.round(kvLv * 20) / 20;
+      if (Math.abs(tK - curK) > 0.004) {
+        curK = tK;
+        if (kTube) { scene.remove(kTube); kTube.geometry.dispose(); }
+        kTube = new THREE.Mesh(new THREE.TubeGeometry(kcurve, 48, curK, 10), tubeMat); scene.add(kTube);
+      }
+      const nk = Math.min(NPK, Math.round(NPK * (0.1 + 0.95 * kvLv)));
+      kGeo.setDrawRange(0, nk);
+      for (let i = 0; i < nk; i++) {
+        if (playing) { ku[i] += dt * 0.55; ku[i] -= Math.floor(ku[i]); }
+        const kk = Math.min(kcp.length - 1, kfr.normals.length - 1, Math.floor(ku[i] * KNSmp)), p = kcp[kk], n = kfr.normals[kk], b = kfr.binormals[kk];
+        const o = kf[i] * curK * 0.85, c = Math.cos(ka[i]) * o, s = Math.sin(ka[i]) * o;
+        kp[i * 3] = p.x + n.x * c + b.x * s; kp[i * 3 + 1] = p.y + n.y * c + b.y * s; kp[i * 3 + 2] = p.z + n.z * c + b.z * s;
+      }
+      kGeo.attributes.position.needsUpdate = true;
       if (playing) {
-        prog += dt * BW[bw] / (SZW[wt] * 1.6);
-        if (prog >= 1) { prog -= 1; for (let j = 0; j < B; j++) spawn(); }
+        prog += dt * BW[bw] / ((SZW[wt] + kv) * 1.6); // step rate ∝ bw / (weights + kv)
+        if (prog >= 1) { prog -= 1; ctx++; if (ctx > CTX) ctx = 1; for (let j = 0; j < B; j++) spawn(); }
         core.rotation.y += dt * (0.3 + BW[bw] * 0.15); core.rotation.x += dt * 0.2;
       }
       const lit = Math.floor(prog * NRING);
@@ -522,7 +594,8 @@ function buildFlow(scene, emit) {
         orbs.setMatrixAt(j, M.compose(P, Q, S));
       }
       orbs.instanceMatrix.needsUpdate = true;
-      const st = { bw, wt, B, rel: Math.round((BW[bw] / SZW[wt]) * 4 * 10) / 10, playing };
+      const per = Math.round((BW[bw] / (SZW[wt] + kv)) * 4 * 10) / 10; // tokens/s ∝ bw / (weights + kv)
+      const st = { bw, wt, B, ctx, per, tot: Math.round(per * B * 10) / 10, playing };
       const key = JSON.stringify(st); if (key !== last) { last = key; emit(st); }
     },
     action(name, arg) {
@@ -609,6 +682,12 @@ function buildSplat(scene, emit, ctx) {
 }
 
 const BUILD = { moe: buildMoE, spec: buildSpec, offload: buildOffload, sample: buildSample, attn: buildAttn, flow: buildFlow, splat: buildSplat };
+// Extra scene builders live one-per-file in ./builders/<kind>.js (default export). Files starting with _ are helpers.
+const EXTRA = import.meta.glob('./builders/*.js', { eager: true });
+for (const [path, mod] of Object.entries(EXTRA)) {
+  const kind = path.replace(/^.*\//, '').replace(/\.js$/, '');
+  if (!kind.startsWith('_') && mod.default) BUILD[kind] = mod.default;
+}
 
 export function mount(el, kind, opts = {}, onState = () => {}) {
   const renderer = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true });

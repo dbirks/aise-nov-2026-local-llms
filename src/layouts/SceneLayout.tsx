@@ -16,23 +16,26 @@ const num = (v: unknown): string => (typeof v === 'number' ? String(v) : '–');
 const text = (v: unknown): string => (typeof v === 'string' ? v : '–');
 const list = (v: unknown): string => (Array.isArray(v) && v.length ? v.join(', ') : '–');
 const word = (v: unknown): string => (typeof v === 'string' && v ? ` · picked “${v}”` : '');
-const over = (v: unknown): string => (typeof v === 'number' && v > 0 ? ` · ${v} over VRAM` : '');
 
 /** One-line human summary of the live scene state. All numbers are simulated. */
 function readout(kind: SceneKind, s: SceneState): string {
+  // builders in src/scenes/builders emit their own one-line readout
+  if (typeof s.readout === 'string') return s.readout;
   switch (kind) {
     case 'moe':
-      return `token ${num(s.token)} · layer ${num(s.layer)}/${num(s.L)} · experts ${list(s.chosen)}`;
+      return `layer ${num(s.layer)}/${num(s.L)} · experts ${list(s.chosen)} · ≈${num(s.k)}/${num(s.E)} weights active · ${s.residency === 'ram' ? 'experts in RAM' : `all ${num(s.E)} resident`}`;
     case 'spec':
-      return `${text(s.phase)} · K=${num(s.K)} · accepted ${num(s.a)} · generated ${num(s.gen)}`;
+      return `${text(s.phase)} · ${text(s.mode)} · accepted ${num(s.a)}/${num(s.K)} · target passes ${num(s.rounds)}`;
     case 'offload':
-      return `GPU layers ${num(s.ngl)}/${num(s.NL)} · CPU ${num(s.cpu)}${over(s.over)}`;
+      return `GPU layers ${num(s.ngl)}/${num(s.NL)} · CPU ${num(s.cpu)} · each CPU layer streams weights from RAM/token`;
     case 'sample':
       return `T=${num(s.T)} · top-p ${num(s.topP)} · ${num(s.k)} of ${num(s.NT)} tokens kept${word(s.word)}`;
     case 'attn':
       return `${text(s.mode)} · query ${num(s.q)}/${num(s.N)} · window ${num(s.win)}`;
     case 'flow':
-      return `${text(s.bw)} · ${text(s.wt)} · batch ${num(s.B)} · ~${num(s.rel)}× tokens/s (relative)`;
+      return `~${num(s.per)} tok/s per user · ~${num(s.tot)} total (relative)`;
+    default:
+      return '';
   }
 }
 

@@ -1,7 +1,9 @@
 // Shared contract for the deck. See docs/ARCHITECTURE.md.
 // Every slide is plain data; layouts in src/layouts render it at 1920×1080.
 
-export type SceneKind = 'moe' | 'spec' | 'offload' | 'sample' | 'attn' | 'flow';
+export type SceneKind = 'moe' | 'spec' | 'offload' | 'sample' | 'attn' | 'flow'
+  // builders in src/scenes/builders/<kind>.js
+  | 'kvcache' | 'scheduler' | 'kvledger' | 'prefill';
 
 export type Tones = '4' | '6' | '8' | '16' | '32' | 'smooth';
 

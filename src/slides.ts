@@ -1,5 +1,6 @@
 import type { Slide } from './deck/types';
 import { splatLab } from './slides/splat-lab';
+import { maybe } from './slides/talk';
 
 // The deck, in order. Everything marked `example: true` is placeholder content to exercise the
 // pipeline and the four slide types — not the final talk. Copy that is not marked example comes
@@ -53,13 +54,14 @@ export const slides: Slide[] = [
     chip: '01 — Choose a model',
     caption: {
       title: 'Experts on call',
-      body: 'Each token runs through a few experts per layer. Every expert stays loaded, because the next token may pick different ones.',
+      body: 'Each token runs k of E experts per layer. The rest are idle but still occupy memory — unless you park them in RAM and pay the bandwidth.',
     },
     controls: [
       { kind: 'choice', action: 'k', label: 'top-k', options: [1, 2, 3, 4].map(v => ({ label: String(v), value: v })), initial: 2 },
+      { kind: 'choice', action: 'residency', label: 'experts', options: [{ label: 'resident', value: 'resident' }, { label: 'in RAM', value: 'ram' }], initial: 'resident' },
       { kind: 'toggle', action: 'usage', label: 'usage heat', initial: false },
     ],
-    notes: 'Routing in this scene is random (simulated). Real routers are learned, per layer.',
+    notes: 'Routing is random (simulated); real routers are learned, per layer. Scale illustrative 4×8 — Qwen3-30B-A3B card: 48 layers × 128 experts, 8 active (verify). “Experts in RAM” mirrors llama.cpp --cpu-moe / --n-cpu-moe (PR #15077): active ≠ resident.',
   },
   {
     id: 'fit',
@@ -85,6 +87,8 @@ export const slides: Slide[] = [
     title: 'KV cache precision',
     body: 'Set separately from weight precision. Each selected flag opens its 3D scene, then returns here.',
   },
+  ...maybe('kvcache'),
+  ...maybe('kvledger'),
   {
     id: 'offload',
     type: 'scene',
@@ -93,12 +97,12 @@ export const slides: Slide[] = [
     chip: '02 — Make it fit',
     caption: {
       title: 'Split the layers',
-      body: '-ngl decides how many layers live in VRAM. The rest run from system RAM, and activations cross the bus once per token.',
+      body: '-ngl is a bet on bandwidth: every token streams the offloaded layers’ weights out of system RAM. Activations crossing the bus are the small part.',
     },
     controls: [
       { kind: 'choice', action: 'ngl', label: '-ngl', options: [0, 4, 8, 9, 12].map(v => ({ label: String(v), value: v })), initial: 4 },
     ],
-    notes: 'Timing ratios and the 9-layer VRAM cap are illustrative.',
+    notes: 'Layer count, slab sizes and timing ratios are illustrative. The 9-layer wireframe stands in for a GiB budget — real layer bytes differ and KV cache + workspace also live in VRAM. -ngl is llama.cpp syntax.',
   },
   {
     id: 'fast',
@@ -106,9 +110,10 @@ export const slides: Slide[] = [
     header: [TALK, CH(3)],
     number: '03',
     title: 'Make it fast',
-    framing: 'Decode is a memory stream. Speed comes from moving fewer bytes per useful token.',
+    framing: 'Prefill computes a prompt; decode streams a memory. Each has its own bottleneck.',
     example: true,
   },
+  ...maybe('prefill'),
   {
     id: 'flow',
     type: 'scene',
@@ -116,15 +121,15 @@ export const slides: Slide[] = [
     example: true,
     chip: '03 — Make it fast',
     caption: {
-      title: 'Decode streams the weights',
-      body: 'Every decode step reads all active weights. Smaller weights or wider pipes help; a batch reuses one stream.',
+      title: 'Weights once, KV per sequence',
+      body: 'A decode step streams all active weights once — but KV for every sequence. Batch B multiplies total tok/s, not yours.',
     },
     controls: [
       { kind: 'choice', action: 'bw', label: 'memory', options: ['RAM', 'Unified', 'VRAM'].map(v => ({ label: v, value: v })), initial: 'Unified' },
       { kind: 'choice', action: 'wt', label: 'weights', options: ['FP16', 'Q8', 'Q4'].map(v => ({ label: v, value: v })), initial: 'FP16' },
       { kind: 'choice', action: 'B', label: 'batch', options: [1, 4, 8].map(v => ({ label: String(v), value: v })), initial: 1 },
     ],
-    notes: 'Bandwidth-bound intuition only; ignores compute limits and KV reads.',
+    notes: 'Illustrative byte model: bytes/step ≈ W + B·KV(t), tokens/s ∝ bandwidth / (weights + kv). “All active weights” is dense-only; MoE reads selected experts. Pope et al. arXiv:2211.05102.',
   },
   {
     id: 'spec',
@@ -134,44 +139,14 @@ export const slides: Slide[] = [
     chip: '03 — Make it fast',
     caption: {
       title: 'Draft, then verify',
-      body: 'A small draft proposes K tokens. One target pass keeps the accepted prefix and adds one token of its own.',
+      body: 'A draft proposes K tokens. One target pass keeps the accepted prefix, corrects the first rejection and adds one token — verified by min(1, p/q), not top-token equality.',
     },
     controls: [
       { kind: 'choice', action: 'K', label: 'K', options: [3, 5, 7].map(v => ({ label: String(v), value: v })), initial: 5 },
       { kind: 'choice', action: 'p', label: 'accept', options: [0.5, 0.7, 0.9].map(v => ({ label: String(v), value: v })), initial: 0.7 },
+      { kind: 'choice', action: 'mode', label: 'verify', options: [{ label: 'greedy', value: 'greedy' }, { label: 'sampling', value: 'sampling' }], initial: 'greedy' },
     ],
-    notes: 'Fixed per-token acceptance rate; not exact speculative sampling.',
-  },
-  {
-    id: 'sample',
-    type: 'scene',
-    scene: 'sample',
-    example: true,
-    chip: '03 — Make it fast',
-    caption: {
-      title: 'Temperature reshapes the terrain',
-      body: 'Low temperature sharpens the peaks. Top-p floods everything below the cut-off.',
-    },
-    controls: [
-      { kind: 'choice', action: 'T', label: 'temp', options: [0.3, 0.7, 1.0, 1.5].map(v => ({ label: String(v), value: v })), initial: 0.7 },
-      { kind: 'choice', action: 'topP', label: 'top-p', options: [0.5, 0.9, 1].map(v => ({ label: String(v), value: v })), initial: 0.9 },
-    ],
-  },
-  {
-    id: 'attn',
-    type: 'scene',
-    scene: 'attn',
-    example: true,
-    chip: '02 — Make it fit',
-    caption: {
-      title: 'Not every layer looks back forever',
-      body: 'Sliding-window layers keep a fixed window of KV. Hybrid models mix them with full-attention layers.',
-    },
-    controls: [
-      { kind: 'choice', action: 'mode', label: 'layers', options: ['full', 'sliding', 'hybrid'].map(v => ({ label: v, value: v })), initial: 'hybrid' },
-      { kind: 'choice', action: 'W', label: 'window', options: [4, 8, 16].map(v => ({ label: String(v), value: v })), initial: 8 },
-    ],
-    notes: 'Attention weights are synthetic.',
+    notes: 'Sampling mode: synthetic seeded p/q; accept with probability min(1, p/q) (Leviathan et al., ICML 2023). Rejection invalidates later draft tokens. Block (DFlash) and tree drafters are different machinery.',
   },
   {
     id: 'serve',
@@ -182,6 +157,23 @@ export const slides: Slide[] = [
     framing: 'Concurrency, scheduling and resource budgets in vLLM, llama.cpp and Ollama.',
     example: true,
   },
+  ...maybe('scheduler'),
+  {
+    id: 'sample',
+    type: 'scene',
+    scene: 'sample',
+    example: true,
+    chip: '04 — Serve it',
+    caption: {
+      title: 'Two dials on one distribution',
+      body: 'Temperature reshapes the peaks; top-p caps the mass you sample from — a cutoff drawn as a water level. Positions are an arbitrary map, not an embedding space.',
+    },
+    controls: [
+      { kind: 'choice', action: 'T', label: 'temp', options: [{ label: '→0', value: 0.01 }, { label: '0.3', value: 0.3 }, { label: '0.7', value: 0.7 }, { label: '1.0', value: 1 }, { label: '1.5', value: 1.5 }], initial: 0.7 },
+      { kind: 'choice', action: 'topP', label: 'top-p', options: [0.5, 0.9, 1].map(v => ({ label: String(v), value: v })), initial: 0.9 },
+      { kind: 'toggle', action: 'sample', label: 'sample now', initial: false },
+    ],
+  },
   {
     id: 'connect',
     type: 'section',
@@ -191,6 +183,8 @@ export const slides: Slide[] = [
     framing: 'A gateway in front of models hosted on independent machines.',
     example: true,
   },
+  // Retired from the route by the viz audit (attention weights ≠ KV memory); replaced by `kvledger`.
+  // Kept reachable at the end of the appendix as #/attn.
   {
     id: 'splat-lab',
     type: 'section',
@@ -201,4 +195,19 @@ export const slides: Slide[] = [
     example: true,
   },
   ...splatLab,
+  {
+    id: 'attn',
+    type: 'scene',
+    scene: 'attn',
+    example: true,
+    chip: 'Retired — attention arcs',
+    caption: {
+      title: 'Attention arcs (retired)',
+      body: 'Kept for reference: draws synthetic attention weights, not KV memory. The KV ledger scene replaces it in chapter 02.',
+    },
+    controls: [
+      { kind: 'choice', action: 'mode', label: 'layers', options: ['full', 'sliding', 'hybrid'].map(v => ({ label: v, value: v })), initial: 'hybrid' },
+      { kind: 'choice', action: 'W', label: 'window', options: [4, 8, 16].map(v => ({ label: String(v), value: v })), initial: 8 },
+    ],
+  },
 ];

@@ -21,7 +21,7 @@ export interface SceneRef {
  */
 // Scene slides have the caption card on the left (x 96–996 of 1920), so each scene is framed in the
 // free space on the right: cx ≈ 0.74 of the width, zoomed out (fit) until it fits that space.
-const FRAMING: Record<SceneKind, { cx: number; fit: number }> = {
+const FRAMING: Partial<Record<SceneKind, { cx: number; fit: number }>> = {
   moe: { cx: 0.74, fit: 1.35 },
   spec: { cx: 0.74, fit: 1.6 },
   offload: { cx: 0.74, fit: 1.6 },
@@ -49,7 +49,7 @@ export function useScene(kind: MountKind, opts: PixelOpts, enabled: boolean, spl
   useEffect(() => {
     const el = ref.current;
     if (!enabled || !el) return;
-    const framing = kind === 'splat' ? SPLAT_FRAMING : FRAMING[kind as SceneKind];
+    const framing = kind === 'splat' ? SPLAT_FRAMING : (FRAMING[kind as SceneKind] ?? { cx: 0.74, fit: 1.5 });
     const h = mount(el, kind, { ...optsRef.current, ...framing, splat: splatRef.current }, setState);
     setHandle(h);
     return () => {
