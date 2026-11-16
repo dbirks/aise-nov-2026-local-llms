@@ -31,7 +31,7 @@ const FRAMING: Partial<Record<SceneKind, { cx: number; fit: number }>> = {
 };
 
 // Splat slides use a narrower caption card (760px), so the view sits a little more centred.
-const SPLAT_FRAMING = { cx: 0.62, fit: 1 };
+const SPLAT_FRAMING = { cx: 0.66, fit: 1.4 };
 
 export function useScene(kind: MountKind, opts: PixelOpts, enabled: boolean, splat?: SplatOpts): SceneRef {
   const ref = useRef<HTMLDivElement | null>(null);
