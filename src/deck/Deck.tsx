@@ -3,6 +3,7 @@ import type { PixelOpts, Slide } from './types';
 import { SlideView } from '../layouts';
 import { Overview } from './Overview';
 import { PresenterPanel } from './PresenterPanel';
+import { MobileDeck } from './MobileDeck';
 import './deck.css';
 
 const W = 1920, H = 1080;
@@ -12,6 +13,24 @@ function indexFromHash(slides: Slide[]): number {
   const id = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
   const i = slides.findIndex(s => s.id === id);
   return i < 0 ? 0 : i;
+}
+
+/** True when `?mobile=1` is in the URL (lets you test the touch feed on a desktop browser). */
+function forcedMobile(): boolean {
+  return new URLSearchParams(location.search).get('mobile') === '1';
+}
+
+/** Live CSS media query (pointer: coarse on touch devices). */
+function useMediaQuery(query: string): boolean {
+  const [match, setMatch] = useState(() => window.matchMedia(query).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const onChange = () => setMatch(mq.matches);
+    onChange();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, [query]);
+  return match;
 }
 
 function loadOpts(): PixelOpts {
@@ -30,6 +49,7 @@ export function Deck({ slides }: { slides: Slide[] }) {
   const [panel, setPanel] = useState(false);
   const [pixelOpts, setPixelOptsState] = useState<PixelOpts>(loadOpts);
   const stepHandler = useRef<((dir: 1 | -1) => boolean) | null>(null);
+  const mobile = useMediaQuery('(pointer: coarse)') || forcedMobile();
 
   const setPixelOpts = useCallback((o: PixelOpts) => {
     setPixelOptsState(o);
@@ -56,6 +76,7 @@ export function Deck({ slides }: { slides: Slide[] }) {
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (mobile) return; // the touch feed owns keyboard paging
       const k = e.key;
       if (overview) {
         if (k === 'Escape' || k === 'o' || k === 'O') setOverview(false);
@@ -77,9 +98,11 @@ export function Deck({ slides }: { slides: Slide[] }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [go, index, overview, slides.length]);
+  }, [go, index, mobile, overview, slides.length]);
 
   const onStepKey = useCallback((h: ((dir: 1 | -1) => boolean) | null) => { stepHandler.current = h; }, []);
+
+  if (mobile) return <MobileDeck slides={slides} pixelOpts={pixelOpts} />;
 
   return (
     <div className="deck">

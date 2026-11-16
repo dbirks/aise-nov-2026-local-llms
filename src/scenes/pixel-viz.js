@@ -540,7 +540,7 @@ export function mount(el, kind, opts = {}, onState = () => {}) {
   const renderer = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true });
   renderer.setPixelRatio(1);
   const cv = renderer.domElement;
-  Object.assign(cv.style, { width: '100%', height: '100%', display: 'block', imageRendering: 'pixelated', touchAction: 'none', cursor: 'grab' });
+  Object.assign(cv.style, { width: '100%', height: '100%', display: 'block', imageRendering: 'pixelated', touchAction: 'pan-y', cursor: 'grab' });
   el.appendChild(cv);
   const rt = new THREE.WebGLRenderTarget(4, 4, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, samples: 4 });
   const post = makePost(), pscene = new THREE.Scene(), pcam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
