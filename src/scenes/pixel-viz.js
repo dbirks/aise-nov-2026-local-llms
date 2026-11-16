@@ -559,7 +559,9 @@ export function mount(el, kind, opts = {}, onState = () => {}) {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const W = Math.max(16, Math.round(el.clientWidth * dpr / o.pixel)), H = Math.max(16, Math.round(el.clientHeight * dpr / o.pixel));
     renderer.setSize(W, H, false); rt.setSize(W, H);
-    if (iso) { const a = W / H, s = viz.view.size; Object.assign(cam, { left: -s * a, right: s * a, top: s, bottom: -s }); } else cam.aspect = W / H;
+    // `cx` = horizontal position of the view target as a fraction of the canvas width (0.5 = centred),
+    // `fit` > 1 zooms out. Slides use these to frame the scene beside the caption card.
+    if (iso) { const a = W / H, s = viz.view.size * (o.fit ?? 1), w = 2 * s * a, cx = o.cx ?? 0.5; Object.assign(cam, { left: -w * cx, right: w * (1 - cx), top: s, bottom: -s }); } else cam.aspect = W / H;
     cam.updateProjectionMatrix(); viz.resize && viz.resize(W, H);
   }
   function applyOpts() {

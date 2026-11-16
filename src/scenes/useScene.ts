@@ -19,6 +19,17 @@ export interface SceneRef {
  * cleanup, so the dev double-invoke leaves exactly one live context.
  * Changing `opts` (pixel, tones, dither) updates the live renderer instead of remounting.
  */
+// Scene slides have the caption card on the left (x 96–996 of 1920), so each scene is framed in the
+// free space on the right: cx ≈ 0.74 of the width, zoomed out (fit) until it fits that space.
+const FRAMING: Record<SceneKind, { cx: number; fit: number }> = {
+  moe: { cx: 0.74, fit: 1.35 },
+  spec: { cx: 0.74, fit: 1.6 },
+  offload: { cx: 0.74, fit: 1.6 },
+  sample: { cx: 0.75, fit: 1.8 },
+  attn: { cx: 0.74, fit: 2.05 },
+  flow: { cx: 0.74, fit: 1.75 },
+};
+
 export function useScene(kind: SceneKind, opts: PixelOpts, enabled: boolean): SceneRef {
   const ref = useRef<HTMLDivElement | null>(null);
   const [handle, setHandle] = useState<SceneHandle | null>(null);
@@ -31,7 +42,7 @@ export function useScene(kind: SceneKind, opts: PixelOpts, enabled: boolean): Sc
   useEffect(() => {
     const el = ref.current;
     if (!enabled || !el) return;
-    const h = mount(el, kind, optsRef.current, setState);
+    const h = mount(el, kind, { ...optsRef.current, ...FRAMING[kind] }, setState);
     setHandle(h);
     return () => {
       h.dispose();
