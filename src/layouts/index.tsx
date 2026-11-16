@@ -4,6 +4,7 @@ import { SectionLayout } from './SectionLayout';
 import { SceneLayout } from './SceneLayout';
 import { CommandLayout } from './CommandLayout';
 import { ListLayout } from './ListLayout';
+import { SplatLayout } from './SplatLayout';
 import { ExampleTag } from './ExampleTag';
 import './layouts.css';
 
@@ -17,6 +18,7 @@ export function SlideView(props: SlideProps<Slide>) {
     case 'scene': body = <SceneLayout {...props} slide={slide} />; break;
     case 'command': body = <CommandLayout {...props} slide={slide} />; break;
     case 'list': body = <ListLayout {...props} slide={slide} />; break;
+    case 'splat': body = <SplatLayout {...props} slide={slide} />; break;
   }
   return <div className="slide">{body}{slide.example && <ExampleTag />}</div>;
 }

@@ -3,3 +3,9 @@ dist
 *.local
 .playwright-cli
 tsconfig.tsbuildinfo
+tools/splats/*/raw/
+tools/splats/*/work/
+tools/splats/*/tmp/
+tools/splats/a3/SyntaxSplat/
+.venv
+__pycache__

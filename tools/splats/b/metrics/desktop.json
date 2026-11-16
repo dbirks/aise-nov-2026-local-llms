@@ -1,0 +1,36 @@
+{
+  "input": "tools/splats/b/inputs/desktop.jpg",
+  "source_px": [
+    1280,
+    1707
+  ],
+  "lift_px": [
+    576,
+    768
+  ],
+  "model": "depth-anything/Depth-Anything-V2-Small-hf",
+  "stride": 2,
+  "fov_deg": 50.0,
+  "near": 2.2,
+  "depth_range": 1.2,
+  "depth_polarity_flipped": false,
+  "core": 2.8373,
+  "ring": 2.6244,
+  "splats_total": 110592,
+  "splats_kept": 105062,
+  "dropped_far_pct": 5.0,
+  "extent_units": [
+    2.996,
+    4.0,
+    1.431
+  ],
+  "out": "/tmp/splats-b/desktop.ply",
+  "ply_bytes": 7144632,
+  "times_s": {
+    "model_load_s": 2.94,
+    "depth_s": 1.58,
+    "bake_s": 0.1,
+    "peak_rss_mb": 730.8
+  },
+  "torch_threads": 4
+}

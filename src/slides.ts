@@ -1,4 +1,5 @@
 import type { Slide } from './deck/types';
+import { splatLab } from './slides/splat-lab';
 
 // The deck, in order. Everything marked `example: true` is placeholder content to exercise the
 // pipeline and the four slide types — not the final talk. Copy that is not marked example comes
@@ -190,4 +191,14 @@ export const slides: Slide[] = [
     framing: 'A gateway in front of models hosted on independent machines.',
     example: true,
   },
+  {
+    id: 'splat-lab',
+    type: 'section',
+    header: [TALK, 'Appendix'],
+    number: 'GS',
+    title: 'Splat lab',
+    framing: 'Experiments: the same pixel pipeline fed by Gaussian splats made in different ways. Each slide names its method.',
+    example: true,
+  },
+  ...splatLab,
 ];

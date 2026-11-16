@@ -1,0 +1,50 @@
+{
+  "last_error": {
+    "at": "2026-11-16T15:54:27",
+    "attempts": 3,
+    "text": "AppError: The upstream Gradio app has raised an exception but has not enabled verbose error reporting. To enable, set show_error=True in launch()."
+  },
+  "lgmmini_gpu": {
+    "api": "POST /run(image, seed) -> ply",
+    "final_bytes": 524709,
+    "final_file": "public/splats/c/lgm-gpu.spz",
+    "input": "/home/david/dev/aise-nov-2026-local-llms/tools/splats/c/inputs/gpu-gigabyte.jpg",
+    "model": "LGM (Large Multi-View Gaussian Model) mini",
+    "normalized_extent": [
+      3.988,
+      3.645,
+      3.48
+    ],
+    "note": "first attempt failed with gradio_client 2.7.2 (upload API mismatch against gradio 5.49.1); works with 1.14.0",
+    "opacity_filter": "kept splats with sigmoid(opacity) >= 0.05",
+    "raw_ply": "/tmp/splat-c/lgmmini_gpu.raw.ply",
+    "raw_ply_bytes": 2220537,
+    "seed": 42,
+    "space": "dylanebert/LGM-mini",
+    "space_url": "https://dylanebert-lgm-mini.hf.space",
+    "splats_final": 33372,
+    "splats_raw": 39646,
+    "status": "ok",
+    "wall_seconds": 4.7
+  },
+  "lgmmini_rack": {
+    "attempted": "20:56Z, 20:57Z, 20:59Z (dylanebert/LGM-mini /run, server-rack.jpg seed 7)",
+    "status": "failed"
+  },
+  "quota_blocked": {
+    "affects": "every GPU endpoint of every ZeroGPU Space tried (LGM-mini, trellis-community/TRELLIS, microsoft/TRELLIS.2)",
+    "at": "2026-11-16T20:56Z",
+    "resume": "export HF_TOKEN=\u2026 then pass token= to Client, or wait for the daily reset; jobs: --job trellis_gpu | lgmmini_rack | lgm_text_robot",
+    "verbatim": "AppError: You have exceeded your ZeroGPU quota (60s requested vs. 0s left). Try again in 0:00:00. Authenticate with a Hugging Face token for more quota - https://huggingface.co/settings/tokens"
+  },
+  "trellis_gpu": {
+    "cause": "Anonymous ZeroGPU budget spent by the three 60 s attempts (see quota_blocked).",
+    "error": "AppError: The upstream Gradio app has raised an exception but has not enabled verbose error reporting. To enable, set show_error=True in launch().",
+    "errors": [
+      "attempt 1 (20:52Z): ReadTimeout: The read operation timed out",
+      "attempt 2 (20:52Z): ReadTimeout: The read operation timed out",
+      "attempt 3 (20:54Z): AppError: The upstream Gradio app has raised an exception but has not enabled verbose error reporting. To enable, set show_error=True in launch()."
+    ],
+    "status": "failed"
+  }
+}

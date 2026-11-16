@@ -534,7 +534,81 @@ function buildFlow(scene, emit) {
   };
 }
 
-const BUILD = { moe: buildMoE, spec: buildSpec, offload: buildOffload, sample: buildSample, attn: buildAttn, flow: buildFlow };
+// ── GS · Gaussian splats (Spark), through the same low-res + dither pipeline ──
+// Spark's SparkRenderer reads THREE.WebGLRenderer.getRenderTarget() inside its
+// onBeforeRender hook (see dist/spark.module.js: renderSize + encodeLinear come from the
+// active target), so rendering `scene` into our low-res target makes the splats land in the
+// pixel buffer the post shader reads. No SparkRenderer `target:` option needed.
+const SPLAT_VIEW = { target: [0, 0, 0], radius: 40, theta: 0.6, phi: 1.1, size: 2.2 };
+
+function countSplats(root) {
+  let n = 0;
+  root.traverse(o => {
+    if (o.packedSplats && o.packedSplats.numSplats) { n += o.packedSplats.numSplats; return; }
+    if (o.splats && o.splats.getNumSplats) n += o.splats.getNumSplats();
+  });
+  return n || undefined;
+}
+
+function buildSplat(scene, emit, ctx) {
+  const cfg = ctx.opts.splat || {};
+  const view = { ...SPLAT_VIEW, ...(cfg.view || {}) };
+  const spin = cfg.spin || 0;
+  let playing = true, loaded = false, count, last = '', disposed = false;
+  let sparkRenderer = null, pivot = null, mesh = null;
+
+  const emitState = () => {
+    const st = { loaded, count, playing };
+    const key = JSON.stringify(st); if (key !== last) { last = key; emit(st); }
+  };
+  emitState();
+
+  const teardown = () => {
+    if (pivot) { scene.remove(pivot); pivot = null; }
+    if (mesh) { mesh.traverse(o => o.dispose && o.dispose()); mesh = null; }
+    if (sparkRenderer) { scene.remove(sparkRenderer); sparkRenderer.dispose(); sparkRenderer = null; }
+  };
+
+  // Spark (~3 MB) and the proc registry load lazily: only splat slides pay for them.
+  (async () => {
+    const spark = await import('@sparkjsdev/spark');
+    if (disposed) return;
+    sparkRenderer = new spark.SparkRenderer({ renderer: ctx.renderer });
+    scene.add(sparkRenderer);
+
+    let obj;
+    if (cfg.src) {
+      obj = new spark.SplatMesh({ url: import.meta.env.BASE_URL + cfg.src });
+    } else if (cfg.proc) {
+      const { splatProcs } = await import('./splat-procs');
+      const proc = splatProcs[cfg.proc];
+      if (!proc) throw new Error(`unknown splat proc "${cfg.proc}" (src/scenes/splat-procs/${cfg.proc}.ts)`);
+      obj = await proc({ spark, THREE });
+    } else {
+      throw new Error('splat scene needs opts.splat.src or opts.splat.proc');
+    }
+    if (disposed) { mesh = obj; teardown(); return; }
+
+    const t = cfg.transform || {};
+    if (t.position) obj.position.set(t.position[0], t.position[1], t.position[2]);
+    if (t.quaternion) obj.quaternion.set(t.quaternion[0], t.quaternion[1], t.quaternion[2], t.quaternion[3]);
+    if (t.scale) obj.scale.setScalar(t.scale);
+    pivot = new THREE.Group(); pivot.add(obj); scene.add(pivot); mesh = obj;
+
+    if (obj.initialized) await obj.initialized;      // file decode / procedural construct
+    if (disposed) return;
+    count = countSplats(obj); loaded = true; emitState();
+  })().catch(e => { console.warn('[pixel-viz splat]', e); emitState(); });
+
+  return {
+    view,
+    update(dt) { if (playing && pivot && spin) pivot.rotation.y += spin * dt; },
+    action(name) { if (name === 'play') { playing = !playing; emitState(); } },
+    dispose() { disposed = true; teardown(); },
+  };
+}
+
+const BUILD = { moe: buildMoE, spec: buildSpec, offload: buildOffload, sample: buildSample, attn: buildAttn, flow: buildFlow, splat: buildSplat };
 
 export function mount(el, kind, opts = {}, onState = () => {}) {
   const renderer = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true });
@@ -548,7 +622,7 @@ export function mount(el, kind, opts = {}, onState = () => {}) {
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0xffffff);
   scene.add(new THREE.AmbientLight(0xffffff, 1.15));
   const dl = new THREE.DirectionalLight(0xffffff, 2.8); dl.position.set(4, 8, 5); scene.add(dl);
-  const viz = BUILD[kind](scene, onState);
+  const viz = BUILD[kind](scene, onState, { renderer, opts });
   const iso = !!viz.view.size;
   const cam = iso ? new THREE.OrthographicCamera(-1, 1, 1, -1, -100, 200) : new THREE.PerspectiveCamera(32, 1, 0.1, 500);
   const orbit = new Orbit(cam, cv, viz.view, iso);
@@ -593,6 +667,10 @@ export function mount(el, kind, opts = {}, onState = () => {}) {
       else if (name === 'rotate') { orbit.tTheta += arg * Math.PI / 2; orbit.idle = 0; }
       else viz.action && viz.action(name, arg);
     },
-    dispose() { cancelAnimationFrame(raf); clearInterval(tick); io.disconnect(); ro.disconnect(); renderer.dispose(); cv.remove(); },
+    dispose() {
+      cancelAnimationFrame(raf); clearInterval(tick); io.disconnect(); ro.disconnect();
+      viz.dispose && viz.dispose();
+      renderer.dispose(); cv.remove();
+    },
   };
 }

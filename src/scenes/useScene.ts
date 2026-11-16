@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import type { PixelOpts, SceneKind } from '../deck/types';
 import { mount } from './pixel-viz';
-import type { SceneHandle, SceneState } from './pixel-viz';
+import type { MountKind, SceneHandle, SceneState, SplatOpts } from './pixel-viz';
 
 export interface SceneRef {
   /** attach to the div that hosts the WebGL canvas */
@@ -30,7 +30,10 @@ const FRAMING: Record<SceneKind, { cx: number; fit: number }> = {
   flow: { cx: 0.74, fit: 1.75 },
 };
 
-export function useScene(kind: SceneKind, opts: PixelOpts, enabled: boolean): SceneRef {
+// Splat slides use a narrower caption card (760px), so the view sits a little more centred.
+const SPLAT_FRAMING = { cx: 0.62, fit: 1 };
+
+export function useScene(kind: MountKind, opts: PixelOpts, enabled: boolean, splat?: SplatOpts): SceneRef {
   const ref = useRef<HTMLDivElement | null>(null);
   const [handle, setHandle] = useState<SceneHandle | null>(null);
   const [state, setState] = useState<SceneState | null>(null);
@@ -38,18 +41,23 @@ export function useScene(kind: SceneKind, opts: PixelOpts, enabled: boolean): Sc
   // Latest opts, without making the mount effect depend on the object identity.
   const optsRef = useRef(opts);
   useEffect(() => { optsRef.current = opts; }, [opts]);
+  // Same for the splat config: only a change of asset/generator remounts (see splatKey).
+  const splatRef = useRef(splat);
+  useEffect(() => { splatRef.current = splat; }, [splat]);
+  const splatKey = kind === 'splat' ? `${splat?.src ?? ''}|${splat?.proc ?? ''}` : '';
 
   useEffect(() => {
     const el = ref.current;
     if (!enabled || !el) return;
-    const h = mount(el, kind, { ...optsRef.current, ...FRAMING[kind] }, setState);
+    const framing = kind === 'splat' ? SPLAT_FRAMING : FRAMING[kind as SceneKind];
+    const h = mount(el, kind, { ...optsRef.current, ...framing, splat: splatRef.current }, setState);
     setHandle(h);
     return () => {
       h.dispose();
       setState(null);
       setHandle(null);
     };
-  }, [kind, enabled]);
+  }, [kind, enabled, splatKey]);
 
   useEffect(() => {
     if (handle) handle.setOpts(opts);

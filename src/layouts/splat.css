@@ -1,0 +1,142 @@
+/* Type GS · Splat layout (src/layouts/SplatLayout.tsx). All sizes in 1920×1080 slide pixels.
+   Overlay geometry matches scene.css; the card is narrower to leave room for the method tag. */
+
+.sp-root {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  overflow: hidden;
+  /* the canvas and every overlay opt back in; nothing else swallows drags */
+  pointer-events: none;
+}
+
+.sp-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  cursor: grab;
+}
+
+/* overview thumbnail: no WebGL, just the placeholder hatch */
+.sp-thumb {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(135deg, #CFD8C4 0 8px, #DCE3D2 8px 24px);
+  pointer-events: auto;
+}
+
+.sp-chip {
+  position: absolute;
+  left: 96px;
+  top: 80px;
+  font-size: 50px;
+  line-height: 1.1;
+  background: var(--bg);
+  padding: 6px 14px;
+  pointer-events: auto;
+}
+
+.sp-card {
+  position: absolute;
+  left: 96px;
+  bottom: 96px;
+  width: 760px;
+  background: var(--bg);
+  padding: 48px 52px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  border-top: 6px solid var(--ink);
+  pointer-events: auto;
+}
+
+.sp-title {
+  font-size: 90px;
+  line-height: 1;
+}
+
+.sp-body {
+  font-size: 42px;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+.sp-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 32px;
+  align-items: center;
+  font-size: 34px;
+}
+
+.sp-btn {
+  font-size: 34px;
+  font-family: var(--font);
+  line-height: 1.15;
+  background: transparent;
+  color: var(--ink);
+  border: 3px solid var(--ink);
+  padding: 2px 14px;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.sp-btn:first-child {
+  margin-left: 0;
+}
+
+.sp-btn:hover {
+  background: var(--rule-soft);
+}
+
+.sp-readout {
+  font-size: 34px;
+  line-height: 1.2;
+  color: var(--ink-2);
+}
+
+/* How these splats were made — sits where the EXAMPLE tag would, so hide that one here. */
+.sp-method {
+  position: absolute;
+  top: 40px;
+  right: 96px;
+  max-width: 760px;
+  background: var(--ink);
+  color: var(--bg);
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: auto;
+}
+
+.sp-method-label {
+  font-size: 38px;
+  line-height: 1.1;
+}
+
+.sp-method-how {
+  font-size: 34px;
+  line-height: 1.15;
+}
+
+.sp-method-compute {
+  font-size: 34px;
+  line-height: 1.15;
+  opacity: 0.8;
+}
+
+.slide:has(.sp-root) .sl-example {
+  display: none;
+}
+
+.sp-hint {
+  position: absolute;
+  right: 96px;
+  bottom: 96px;
+  font-size: 34px;
+  line-height: 1.2;
+  background: var(--bg);
+  padding: 10px 16px;
+  pointer-events: auto;
+}
