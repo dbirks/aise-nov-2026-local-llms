@@ -9,3 +9,4 @@ tools/splats/*/tmp/
 tools/splats/a3/SyntaxSplat/
 .venv
 __pycache__
+tools/splats/a3/repo/
