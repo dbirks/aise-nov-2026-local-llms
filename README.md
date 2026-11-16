@@ -18,6 +18,22 @@ The talk is intended to be a **rapid, interactive tour through detailed 3D visua
 
 **Narrative device:** start from a real serving configuration, open a 3D explanation for the engineering decisions behind individual flags, then return to the configuration. Use the same concepts to compare different inference engines. Do *not* force a line-by-line tour or claim illustrative config values are production defaults.
 
+## Slides (the deck)
+
+The deck is a Vite + React + TypeScript app in `src/`, built with **pnpm**. Visual direction comes from the Claude Design handoff in [`design/handoff/`](design/handoff/README.md): Jersey 15, sage monochrome, live three.js scenes with a pixel post-process.
+
+```sh
+pnpm install
+pnpm dev          # http://localhost:5173
+pnpm build        # type-check + production build into dist/
+```
+
+- **Content:** `src/slides.ts` is the whole deck as data. Slide types are `title`, `section`, `scene`, `command` and `list` (see `src/deck/types.ts`). Set `example: true` on placeholder slides; they show an EXAMPLE tag.
+- **Layouts:** `src/layouts/` has one component per slide type, authored at 1920×1080 and scaled to fit.
+- **3D scenes:** `src/scenes/pixel-viz.js` (render pipeline and six example scenes).
+- **Keys:** ← → step a paused scene or change slide · ↑ ↓ / Space change slide · `.` play/pause · `r` reset view · `O` overview · `P` presenter panel (pixel size, tones, dither, notes) · `F` fullscreen. Each slide has its own URL hash (`#/moe`).
+- **Deploy:** `.github/workflows/deploy.yml` builds and publishes to GitHub Pages on every push to `main`.
+
 ## Research & agent handoff
 
 - [Living research notes and detailed 3D scene briefs](docs/local-llm-talk-research-notes.md)

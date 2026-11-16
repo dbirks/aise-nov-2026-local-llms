@@ -1,0 +1,121 @@
+/* Type C · Scene layout (src/layouts/SceneLayout.tsx). All sizes in 1920×1080 slide pixels. */
+
+.sc-root {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  overflow: hidden;
+  /* the canvas and every overlay opt back in; nothing else swallows drags */
+  pointer-events: none;
+}
+
+.sc-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  cursor: grab;
+}
+
+/* overview thumbnail: no WebGL, just the placeholder hatch */
+.sc-thumb {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(135deg, #CFD8C4 0 8px, #DCE3D2 8px 24px);
+  pointer-events: auto;
+}
+
+.sc-chip {
+  position: absolute;
+  left: 96px;
+  top: 80px;
+  font-size: 50px;
+  line-height: 1.1;
+  background: var(--bg);
+  padding: 6px 14px;
+  pointer-events: auto;
+}
+
+.sc-card {
+  position: absolute;
+  left: 96px;
+  bottom: 96px;
+  width: 900px;
+  background: var(--bg);
+  padding: 48px 52px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  border-top: 6px solid var(--ink);
+  pointer-events: auto;
+}
+
+.sc-title {
+  font-size: 90px;
+  line-height: 1;
+}
+
+.sc-body {
+  font-size: 42px;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+.sc-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 32px;
+  align-items: center;
+  font-size: 34px;
+}
+
+.sc-ctl {
+  display: inline-flex;
+  align-items: center;
+}
+
+.sc-label {
+  color: var(--ink-2);
+}
+
+.sc-btn {
+  font-size: 34px;
+  font-family: var(--font);
+  line-height: 1.15;
+  background: transparent;
+  color: var(--ink);
+  border: 3px solid var(--ink);
+  padding: 2px 14px;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.sc-btn:first-child {
+  margin-left: 0;
+}
+
+.sc-btn:hover {
+  background: var(--rule-soft);
+}
+
+/* emphasis = inversion */
+.sc-btn.sc-on {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.sc-readout {
+  font-size: 34px;
+  line-height: 1.2;
+  color: var(--ink-2);
+}
+
+.sc-hint {
+  position: absolute;
+  right: 96px;
+  bottom: 96px;
+  font-size: 34px;
+  line-height: 1.2;
+  background: var(--bg);
+  padding: 10px 16px;
+  pointer-events: auto;
+}

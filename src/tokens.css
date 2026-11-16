@@ -1,0 +1,26 @@
+/* Design tokens from design/handoff/README.md (high fidelity — use these exact values). */
+:root {
+  --bg: #DCE3D2;        /* slide background, caption cards, 3D "white" */
+  --ink: #2E3A2B;       /* all text, rules, borders, inverted highlights */
+  --ink-2: #4F5E46;     /* secondary text, large sizes only */
+  --rule-soft: #A7B499; /* thin list dividers */
+  --hatch: #CFD8C4;     /* 3D placeholder hatch */
+  --page: #C7D0BB;      /* area around slides */
+  --font: 'Jersey 15', sans-serif;
+
+  /* slide spacing (slide px, 1920×1080) */
+  --pad-y: 112px;
+  --pad-x: 128px;
+  --pad-float: 96px;
+}
+
+html, body, #root { margin: 0; height: 100%; }
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+* { box-sizing: border-box; border-radius: 0; }
+button, select, input { font-family: var(--font); }

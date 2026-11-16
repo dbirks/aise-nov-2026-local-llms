@@ -1,0 +1,166 @@
+/* Static slide layouts: title, section, command, list, example tag. */
+
+.sl-header {
+  display: flex;
+  justify-content: space-between;
+  border-top: 4px solid var(--ink);
+  padding-top: 28px;
+  font-size: 38px;
+  white-space: nowrap;
+}
+
+/* A · Title */
+.sl-title {
+  position: absolute;
+  inset: 0;
+  padding: var(--pad-y) var(--pad-x);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 540px;
+  grid-template-rows: auto 1fr;
+  column-gap: 96px;
+}
+.sl-title > .sl-header { grid-column: 1 / span 2; }
+.sl-title-headline {
+  align-self: end;
+  font-size: 250px;
+  line-height: 0.92;
+  letter-spacing: -0.01em;
+  font-weight: 400;
+  margin: 0;
+}
+.sl-title-chapters {
+  align-self: end;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  font-size: 42px;
+}
+.sl-title-row { display: flex; gap: 28px; }
+.sl-title-row:not(:last-child) {
+  border-bottom: 3px solid var(--rule-soft);
+  padding-bottom: 14px;
+}
+.sl-title-num { width: 72px; }
+
+/* B · Section */
+.sl-section {
+  position: absolute;
+  inset: 0;
+  padding: var(--pad-y) var(--pad-x);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.sl-section-bottom {
+  display: flex;
+  align-items: flex-end;
+  gap: 72px;
+}
+.sl-section-number {
+  font-size: 520px;
+  line-height: 0.75;
+}
+.sl-section-right {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: 24px;
+}
+.sl-section-title {
+  font-size: 160px;
+  line-height: 0.9;
+  font-weight: 400;
+  margin: 0;
+}
+.sl-section-framing {
+  font-size: 42px;
+  line-height: 1.35;
+  max-width: 1000px;
+}
+
+/* D · Command */
+.sl-command {
+  position: absolute;
+  inset: 0;
+  padding: var(--pad-y) var(--pad-x);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  gap: 72px 96px;
+}
+.sl-command > .sl-header { grid-column: 1 / span 2; }
+.sl-command-lines {
+  display: flex;
+  flex-direction: column;
+  font-size: 56px;
+  line-height: 1.5;
+  overflow: hidden;
+}
+.sl-command-line { display: block; }
+.sl-command-line--active {
+  background: var(--ink);
+  color: var(--bg);
+  margin: 0 -20px;
+  padding: 0 20px;
+}
+.sl-command-side {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  align-self: end;
+}
+.sl-command-title {
+  font-size: 110px;
+  line-height: 0.95;
+  font-weight: 400;
+  margin: 0;
+}
+.sl-command-body {
+  font-size: 42px;
+  line-height: 1.4;
+  text-wrap: pretty;
+  margin: 0;
+}
+
+/* List */
+.sl-list {
+  position: absolute;
+  inset: 0;
+  padding: var(--pad-y) var(--pad-x);
+  display: flex;
+  flex-direction: column;
+  gap: 72px;
+}
+.sl-list-title {
+  font-size: 110px;
+  line-height: 0.95;
+  font-weight: 400;
+  margin: 0;
+}
+.sl-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  font-size: 56px;
+  line-height: 1.35;
+  max-width: 1500px;
+}
+.sl-list-row { display: flex; gap: 28px; }
+.sl-list-row:not(:last-child) {
+  border-bottom: 3px solid var(--rule-soft);
+  padding-bottom: 14px;
+}
+.sl-list-num { width: 90px; color: var(--ink); }
+
+/* EXAMPLE tag */
+.sl-example {
+  position: absolute;
+  top: 40px;
+  right: 128px;
+  z-index: 5;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 34px;
+  padding: 4px 16px;
+  letter-spacing: 0.04em;
+}
