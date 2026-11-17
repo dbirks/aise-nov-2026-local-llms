@@ -6,7 +6,7 @@ not a downloaded scan, not illustrative. The photographs are third-party (licenc
 
 | file | slide | what it is | splats | size |
 |---|---|---|---|---|
-| `truck.spz` | `gs-g3-truck` | Tanks and Temples **"truck"** (a toy pickup on a table), after 15,000 training steps, cropped to the subject + a lip of table | 93,540 | 1.50 MB |
+| `truck.spz` | `gs-g3-truck` | Tanks and Temples **"truck"** (a full-size pickup truck photographed outdoors), after 15,000 training steps, cropped to the subject + a lip of table | 93,540 | 1.50 MB |
 | `truck-grow.spz` | `gs-g3-truck-grow` | the **same scene, same crop, at step 2,500** — early refinement: fewer, rounder, fainter splats | 63,551 | 1.00 MB |
 
 Total 2.6 MB (per-file cap 8 MB, method cap 25 MB). Both are centred on the origin, y-up
@@ -95,7 +95,7 @@ renderer), `crop.py` (crop + centre + scale), `pack.sh` (the driver).
 ## Accuracy constraints — what these assets must NOT imply
 
 * The **truck is not "a 3D model"**: it is ~800k anisotropic Gaussians fitted to 251 photographs by
-  differentiable rendering. Nothing here encodes a real vehicle's dimensions (it is a toy on a table
+  differentiable rendering. Nothing here encodes a real vehicle's dimensions (scale is normalised for the slide
   at an arbitrary COLMAP scale — the capture's own units, ~4.4 of them across the subject).
 * PSNR/SSIM above are **held-out-view reconstruction metrics for this one scene**, not a comparison
   of trainers, and not "3DGS quality". No cross-method or cross-hardware claim is being made.

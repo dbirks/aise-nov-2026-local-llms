@@ -21,8 +21,8 @@ export const slides: Slide[] = [
     chip: 'GS — Splat lab',
     src: 'splats/g3/truck.spz',
     caption: {
-      title: 'Toy truck, trained in 404 s',
-      body: 'Real 3DGS training, not a bake: 251 Tanks and Temples photos of a toy pickup, 15,000 steps by Brush over Vulkan on our GTX 1070, then cropped to the subject.',
+      title: 'A truck, trained in 404 s',
+      body: 'Real 3DGS training, not a bake: 251 Tanks and Temples photos of a parked pickup truck, 15,000 steps by Brush over Vulkan on our GTX 1070, then cropped to the subject.',
     },
     method: G3,
     view: { target: [0, 0, 0], radius: 30, theta: 0.62, phi: 1.2, size: 2.05 },
