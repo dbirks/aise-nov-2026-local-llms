@@ -1,0 +1,6 @@
+# splat-lab g2 · text prompts for DiffSplat (SD1.5). One per line: <slug><TAB><prompt>.
+# Chosen to match the deck's other splat-lab subjects (GPU, home server) plus one plain object,
+# and to stay in the noun-phrase style of the Cap3D captions DiffSplat was trained on.
+gpu-cooler	a graphics card with a large cooler
+server-tower	a small home server tower
+books	a stack of books

@@ -1,0 +1,62 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{JOB_NAME}}
+  namespace: default
+  labels: { app: splat-lab-diffsplat }
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 7200
+  template:
+    metadata:
+      labels: { app: splat-lab-diffsplat }
+    spec:
+      restartPolicy: Never
+      runtimeClassName: nvidia
+      nodeSelector: { kubernetes.io/hostname: dave-droid }
+      tolerations:
+        - { key: dedicated, operator: Equal, value: pascal, effect: NoSchedule }
+      containers:
+        - name: run
+          # -devel tag: nvcc is needed to compile DiffSplat's 3DGS rasterizer fork for
+          # sm_61 (TORCH_CUDA_ARCH_LIST=6.1). CUDA 12.6 still ships Pascal kernels; CUDA 13
+          # dropped them. Same torch build as the smoke Job that passed on this card.
+          image: pytorch/pytorch:2.7.1-cuda12.6-cudnn9-devel@sha256:639b8229ccfd8a3aa803cf49c33d6d6fe406750d79aaf723fe8c0eb1060d8cff
+          command:
+            - bash
+            - -ec
+            - |
+              set -euo pipefail
+              bash /scripts/setup.sh
+              . /data/cache/g2/run.env
+              status=0
+              "$G2_PYTHON" /scripts/run.py \
+                  --out "$OUT" \
+                  --repo /data/cache/repo/DiffSplat \
+                  --ckpt /data/cache/ckpt/DiffSplat \
+                  --prompts /scripts/prompts.tsv \
+                  --seed 0 --steps 20 --guidance-scale 7.5 --elevation 10 --res 256 \
+                  2>&1 | tee "$OUT/run.log" || status=$?
+              echo "--- run.py exit status: $status (0 = all prompts ok, 2 = partial, 1 = none)"
+              echo "--- outputs of $OUT"
+              ls -l "$OUT" "$OUT/raw"
+              cat "$OUT/metrics.json"
+              exit $status
+          env:
+            - { name: OUT, value: /data/out/{{OUT_DIR}} }
+            - { name: HF_HOME, value: /data/cache/hf }
+            - { name: TORCH_HOME, value: /data/cache/torch }
+            - { name: PIP_CACHE_DIR, value: /data/cache/pip }
+            - { name: TORCH_CUDA_ARCH_LIST, value: "6.1" }
+            - { name: HF_HUB_DISABLE_TELEMETRY, value: "1" }
+            - { name: DISABLE_TELEMETRY, value: "1" }
+            - { name: WANDB_MODE, value: disabled }
+          resources:
+            requests: { cpu: "2", memory: 6Gi }
+            limits: { cpu: "6", memory: 24Gi, nvidia.com/gpu: "1", nvidia.com/gpumem: "5000" }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+            - { name: scripts, mountPath: /scripts, readOnly: true }
+      volumes:
+        - { name: data, persistentVolumeClaim: { claimName: splat-lab-data } }
+        - { name: scripts, configMap: { name: {{CM_NAME}}, defaultMode: 0755 } }

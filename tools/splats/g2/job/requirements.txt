@@ -1,0 +1,29 @@
+# splat-lab g2 (DiffSplat, SD1.5 variant) — Python deps for the k8s Job.
+# Installed into a --system-site-packages venv on the PVC, so torch / torchvision / numpy /
+# scikit-image-runtime deps come from pytorch/pytorch:2.7.1-cuda12.6-cudnn9-devel and are NOT
+# re-resolved here (that is what keeps the 5000 MiB Pascal container from getting a second
+# torch). Pinned to the set diffusers==0.32.2 (DiffSplat's own pin) was released against.
+#
+# Deliberately absent, with the reason:
+#   xformers                     SM70+; not imported by the SD1.5 UNet/pipeline (diffusers falls
+#                                back to SDPA / the fork's own MVAttnProcessor2_0)
+#   deepspeed, accelerate-cli    training only
+#   rembg[gpu], onnxruntime-gpu  single-view image conditioning only
+#   image-reward, lpips-weights, CLIP (openai), matplotlib, imageio-ffmpeg, wandb
+#                                metrics/video/logging; kept out of the import graph by
+#                                job/apply_patches.py (lpips *itself* is imported by gsvae.py)
+#   kiui[full]                   mesh/vis/extras; plain kiui (lazy_loader only) is enough for the
+#                                one helper `import kiui` needs at module scope
+#   numpy                        left at whatever the image ships (recorded in pip-freeze.txt)
+diffusers==0.32.2
+transformers==4.46.3
+accelerate==1.1.1
+huggingface-hub==0.25.2
+safetensors==0.4.5
+tokenizers==0.20.3
+einops==0.8.0
+omegaconf==2.3.0
+lpips==0.1.4
+scikit-image==0.24.0
+plyfile==1.1.2
+kiui==0.3.5
