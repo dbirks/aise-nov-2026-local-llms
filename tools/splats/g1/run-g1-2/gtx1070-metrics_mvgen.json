@@ -1,0 +1,62 @@
+{
+  "crop": null,
+  "cuda": "12.6",
+  "cutout_s": 0.59,
+  "device": "NVIDIA GeForce GTX 1070",
+  "diffusion_s": 96.63,
+  "elevation": 0.0,
+  "guidance_scale": 5.0,
+  "input": "gtx1070.jpg",
+  "input_sha256": "29aeae8c880a65e467059a4f3338d976d6af8e8ba6c1a1dea3b067f489a56325",
+  "lgm_view_order": [
+    1,
+    2,
+    3,
+    0
+  ],
+  "matte": "rembg",
+  "peak_cuda_alloc_mib": 3870.4,
+  "peak_cuda_reserved_mib": 4850.0,
+  "prompt": "",
+  "repo": "ashawkey/imagedream-ipmv-diffusers",
+  "seed": 42,
+  "stage": "mvgen",
+  "steps": 30,
+  "torch": "2.7.1+cu126",
+  "view_meaning": {
+    "mv_0.png": "azimuth 0",
+    "mv_1.png": "azimuth 90",
+    "mv_2.png": "azimuth 180",
+    "mv_3.png": "azimuth 270",
+    "mv_extra.png": "the extra (conditioning) view the ipmv UNet denoises alongside the 4 outputs"
+  },
+  "views": [
+    "mv_0.png",
+    "mv_1.png",
+    "mv_2.png",
+    "mv_3.png"
+  ],
+  "wall_s": 589.0,
+  "weight_load": {
+    "image_encoder": {
+      "mismatched": 0,
+      "missing": 0,
+      "unexpected": 0
+    },
+    "text_encoder": {
+      "mismatched": 0,
+      "missing": 0,
+      "unexpected": 0
+    },
+    "unet": {
+      "mismatched": 0,
+      "missing": 0,
+      "unexpected": 0
+    },
+    "vae": {
+      "mismatched": 0,
+      "missing": 0,
+      "unexpected": 0
+    }
+  }
+}

@@ -1,0 +1,500 @@
+{
+  "env": {
+    "HF_HOME": "/data/cache/hf",
+    "U2NET_HOME": "/data/cache/u2net"
+  },
+  "gpu": "NVIDIA GeForce GTX 1070, 5000 MiB, 580.167.08",
+  "inputs": {
+    "fetched_utc": "2026-11-17T00:54:38Z",
+    "inputs": [
+      {
+        "artist": "Evan-Amos (own upload to Wikimedia Commons)",
+        "bytes": 147640,
+        "credit": "File: NVIDIA-GTX-1070-FoundersEdition-FL.jpg by Evan-Amos, Wikimedia Commons, public domain",
+        "crop": null,
+        "license": "Public domain",
+        "name": "gtx1070",
+        "note": "NVIDIA GeForce GTX 1070 Founders Edition \u2014 the same GPU model as the one these splats were generated on.",
+        "page": "https://commons.wikimedia.org/wiki/File:NVIDIA-GTX-1070-FoundersEdition-FL.jpg",
+        "path": "/data/in/g1/gtx1070.jpg",
+        "sha256": "29aeae8c880a65e467059a4f3338d976d6af8e8ba6c1a1dea3b067f489a56325",
+        "sha256_matches_record": true,
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/NVIDIA-GTX-1070-FoundersEdition-FL.jpg/1280px-NVIDIA-GTX-1070-FoundersEdition-FL.jpg"
+      },
+      {
+        "artist": "Rakoon (own upload to Wikimedia Commons)",
+        "bytes": 123934,
+        "credit": "File:20200330 104316 Fujitsu ESPRIMO mini PC.jpg by Rakoon, Wikimedia Commons, CC0 1.0",
+        "crop": [
+          0,
+          105,
+          1280,
+          585
+        ],
+        "license": "CC0 1.0 Universal",
+        "name": "minipc",
+        "note": "Small form-factor PC (front view, USB/audio ports visible) used as the 'small home server' subject. Cropped to drop clutter behind the device.",
+        "page": "https://commons.wikimedia.org/wiki/File:20200330_104316_Fujitsu_ESPRIMO_mini_PC.jpg",
+        "path": "/data/in/g1/minipc.jpg",
+        "sha256": "295bb8584b45ea2f251e0ac0b3bec7f27ce5c90f1d0934d9e9a392f057bbf24e",
+        "sha256_matches_record": true,
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/20200330_104316_Fujitsu_ESPRIMO_mini_PC.jpg/1280px-20200330_104316_Fujitsu_ESPRIMO_mini_PC.jpg"
+      }
+    ]
+  },
+  "job": {
+    "image": "pytorch/pytorch:2.7.1-cuda12.6-cudnn9-runtime@sha256:2b59b1b91885677814f78be1f8df48a25d5dc952eb6580eaecfefca510f9afd3",
+    "lgm_commit": "fe8d12cff8c827df7bb77a3c8e8b37408cb6fe4c",
+    "node": "dave-droid",
+    "out": "/data/out/g1-2",
+    "pod": "splat-lab-lgm-2-zmr2h",
+    "script_wall_s": 841,
+    "slug": "g1-lgm",
+    "stage": "all",
+    "utc": "2026-11-17T01:08:27Z"
+  },
+  "nvidia_smi_peak_used_mib": 4943,
+  "subjects": {
+    "gtx1070": {
+      "lgm2ply": {
+        "ckpt": "model_fp16_fixrot.safetensors",
+        "config": "big",
+        "cuda": "12.6",
+        "device": "NVIDIA GeForce GTX 1070",
+        "elevation": 0.0,
+        "forward_s": 0.58,
+        "gaussians": {
+          "expected_4_x_splat_size_sq": 65536,
+          "kept_after_opacity_prune": 29299,
+          "prune_opacity": 0.005,
+          "total": 65536
+        },
+        "input_size": 256,
+        "load_s": 119.1,
+        "peak_cuda_alloc_mib": 1329.6,
+        "peak_cuda_reserved_mib": 1970.0,
+        "ply": {
+          "bounds_max": [
+            0.4475,
+            0.4246,
+            0.4541
+          ],
+          "bounds_min": [
+            -0.4954,
+            -0.5322,
+            -0.4966
+          ],
+          "bytes": 1641105,
+          "centre": [
+            -0.0239,
+            -0.0538,
+            -0.0212
+          ],
+          "count": 29299,
+          "extent": [
+            0.9429,
+            0.9568,
+            0.9507
+          ],
+          "f_dc_mean": [
+            -0.245,
+            -0.258,
+            -0.337
+          ],
+          "opacity_logit": {
+            "max": 13.802,
+            "min": -5.293
+          },
+          "properties": [
+            "x",
+            "y",
+            "z",
+            "f_dc_0",
+            "f_dc_1",
+            "f_dc_2",
+            "opacity",
+            "scale_0",
+            "scale_1",
+            "scale_2",
+            "rot_0",
+            "rot_1",
+            "rot_2",
+            "rot_3"
+          ]
+        },
+        "repo": "ashawkey/LGM",
+        "save_ply_s": 0.07,
+        "seed": 42,
+        "splat_size": 128,
+        "stage": "lgm2ply",
+        "state_dict": {
+          "loaded": 376,
+          "missing_keys": [],
+          "unexpected_keys": []
+        },
+        "stats": {
+          "opacity": {
+            "max": 1.0,
+            "mean": 0.51907,
+            "min": 0.005
+          },
+          "pos_xyz": [
+            {
+              "max": 0.44751,
+              "mean": 0.00214,
+              "min": -0.49536
+            },
+            {
+              "max": 0.42456,
+              "mean": -0.00214,
+              "min": -0.53223
+            },
+            {
+              "max": 0.4541,
+              "mean": -0.00737,
+              "min": -0.49658
+            }
+          ],
+          "rgb": [
+            {
+              "max": 0.99121,
+              "mean": 0.43097,
+              "min": 0.0
+            },
+            {
+              "max": 0.9873,
+              "mean": 0.42733,
+              "min": 0.00049
+            },
+            {
+              "max": 0.97949,
+              "mean": 0.405,
+              "min": 0.00073
+            }
+          ],
+          "rotation_quat_norm": {
+            "max": 1.0,
+            "min": 1.0
+          },
+          "scale": [
+            {
+              "max": 0.03595,
+              "mean": 0.00503,
+              "min": 2e-05
+            },
+            {
+              "max": 0.03919,
+              "mean": 0.00363,
+              "min": 2e-05
+            },
+            {
+              "max": 0.03964,
+              "mean": 0.00455,
+              "min": 0.0
+            }
+          ]
+        },
+        "torch": "2.7.1+cu126",
+        "view_order": [
+          1,
+          2,
+          3,
+          0
+        ],
+        "views_dir": "gtx1070",
+        "wall_s": 119.9,
+        "weights_mib": 791.6
+      },
+      "mvgen": {
+        "crop": null,
+        "cuda": "12.6",
+        "cutout_s": 0.59,
+        "device": "NVIDIA GeForce GTX 1070",
+        "diffusion_s": 96.63,
+        "elevation": 0.0,
+        "guidance_scale": 5.0,
+        "input": "gtx1070.jpg",
+        "input_sha256": "29aeae8c880a65e467059a4f3338d976d6af8e8ba6c1a1dea3b067f489a56325",
+        "lgm_view_order": [
+          1,
+          2,
+          3,
+          0
+        ],
+        "matte": "rembg",
+        "peak_cuda_alloc_mib": 3870.4,
+        "peak_cuda_reserved_mib": 4850.0,
+        "prompt": "",
+        "repo": "ashawkey/imagedream-ipmv-diffusers",
+        "seed": 42,
+        "stage": "mvgen",
+        "steps": 30,
+        "torch": "2.7.1+cu126",
+        "view_meaning": {
+          "mv_0.png": "azimuth 0",
+          "mv_1.png": "azimuth 90",
+          "mv_2.png": "azimuth 180",
+          "mv_3.png": "azimuth 270",
+          "mv_extra.png": "the extra (conditioning) view the ipmv UNet denoises alongside the 4 outputs"
+        },
+        "views": [
+          "mv_0.png",
+          "mv_1.png",
+          "mv_2.png",
+          "mv_3.png"
+        ],
+        "wall_s": 589.0,
+        "weight_load": {
+          "image_encoder": {
+            "mismatched": 0,
+            "missing": 0,
+            "unexpected": 0
+          },
+          "text_encoder": {
+            "mismatched": 0,
+            "missing": 0,
+            "unexpected": 0
+          },
+          "unet": {
+            "mismatched": 0,
+            "missing": 0,
+            "unexpected": 0
+          },
+          "vae": {
+            "mismatched": 0,
+            "missing": 0,
+            "unexpected": 0
+          }
+        }
+      },
+      "peak_cuda_alloc_mib": 3870.4,
+      "ply_bytes": 1641105,
+      "ply_count": 29299,
+      "ply_path": "/data/out/g1-2/gtx1070.ply",
+      "sum_stage_wall_s": 708.9
+    },
+    "minipc": {
+      "lgm2ply": {
+        "ckpt": "model_fp16_fixrot.safetensors",
+        "config": "big",
+        "cuda": "12.6",
+        "device": "NVIDIA GeForce GTX 1070",
+        "elevation": 0.0,
+        "forward_s": 0.56,
+        "gaussians": {
+          "expected_4_x_splat_size_sq": 65536,
+          "kept_after_opacity_prune": 26981,
+          "prune_opacity": 0.005,
+          "total": 65536
+        },
+        "input_size": 256,
+        "load_s": 3.9,
+        "peak_cuda_alloc_mib": 1329.6,
+        "peak_cuda_reserved_mib": 1970.0,
+        "ply": {
+          "bounds_max": [
+            0.5098,
+            0.4619,
+            0.3564
+          ],
+          "bounds_min": [
+            -0.4956,
+            -0.5356,
+            -0.394
+          ],
+          "bytes": 1511297,
+          "centre": [
+            0.0071,
+            -0.0369,
+            -0.0188
+          ],
+          "count": 26981,
+          "extent": [
+            1.0054,
+            0.9976,
+            0.7505
+          ],
+          "f_dc_mean": [
+            -0.238,
+            -0.29,
+            -0.331
+          ],
+          "opacity_logit": {
+            "max": 13.802,
+            "min": -5.293
+          },
+          "properties": [
+            "x",
+            "y",
+            "z",
+            "f_dc_0",
+            "f_dc_1",
+            "f_dc_2",
+            "opacity",
+            "scale_0",
+            "scale_1",
+            "scale_2",
+            "rot_0",
+            "rot_1",
+            "rot_2",
+            "rot_3"
+          ]
+        },
+        "repo": "ashawkey/LGM",
+        "save_ply_s": 0.07,
+        "seed": 42,
+        "splat_size": 128,
+        "stage": "lgm2ply",
+        "state_dict": {
+          "loaded": 376,
+          "missing_keys": [],
+          "unexpected_keys": []
+        },
+        "stats": {
+          "opacity": {
+            "max": 1.0,
+            "mean": 0.44165,
+            "min": 0.005
+          },
+          "pos_xyz": [
+            {
+              "max": 0.50977,
+              "mean": 0.00769,
+              "min": -0.49561
+            },
+            {
+              "max": 0.46191,
+              "mean": -0.01282,
+              "min": -0.53564
+            },
+            {
+              "max": 0.35645,
+              "mean": -0.01059,
+              "min": -0.39404
+            }
+          ],
+          "rgb": [
+            {
+              "max": 0.98926,
+              "mean": 0.43273,
+              "min": 0.00244
+            },
+            {
+              "max": 0.98926,
+              "mean": 0.41819,
+              "min": 0.00439
+            },
+            {
+              "max": 0.98975,
+              "mean": 0.40649,
+              "min": 0.00439
+            }
+          ],
+          "rotation_quat_norm": {
+            "max": 1.0,
+            "min": 1.0
+          },
+          "scale": [
+            {
+              "max": 0.04009,
+              "mean": 0.00553,
+              "min": 5e-05
+            },
+            {
+              "max": 0.04866,
+              "mean": 0.00351,
+              "min": 1e-05
+            },
+            {
+              "max": 0.06586,
+              "mean": 0.00557,
+              "min": 1e-05
+            }
+          ]
+        },
+        "torch": "2.7.1+cu126",
+        "view_order": [
+          1,
+          2,
+          3,
+          0
+        ],
+        "views_dir": "minipc",
+        "wall_s": 4.6,
+        "weights_mib": 791.6
+      },
+      "mvgen": {
+        "crop": [
+          0,
+          105,
+          1280,
+          585
+        ],
+        "cuda": "12.6",
+        "cutout_s": 0.64,
+        "device": "NVIDIA GeForce GTX 1070",
+        "diffusion_s": 98.03,
+        "elevation": 0.0,
+        "guidance_scale": 5.0,
+        "input": "minipc.jpg",
+        "input_sha256": "295bb8584b45ea2f251e0ac0b3bec7f27ce5c90f1d0934d9e9a392f057bbf24e",
+        "lgm_view_order": [
+          1,
+          2,
+          3,
+          0
+        ],
+        "matte": "rembg",
+        "peak_cuda_alloc_mib": 3870.4,
+        "peak_cuda_reserved_mib": 4850.0,
+        "prompt": "",
+        "repo": "ashawkey/imagedream-ipmv-diffusers",
+        "seed": 42,
+        "stage": "mvgen",
+        "steps": 30,
+        "torch": "2.7.1+cu126",
+        "view_meaning": {
+          "mv_0.png": "azimuth 0",
+          "mv_1.png": "azimuth 90",
+          "mv_2.png": "azimuth 180",
+          "mv_3.png": "azimuth 270",
+          "mv_extra.png": "the extra (conditioning) view the ipmv UNet denoises alongside the 4 outputs"
+        },
+        "views": [
+          "mv_0.png",
+          "mv_1.png",
+          "mv_2.png",
+          "mv_3.png"
+        ],
+        "wall_s": 103.6,
+        "weight_load": {
+          "image_encoder": {
+            "mismatched": 0,
+            "missing": 0,
+            "unexpected": 0
+          },
+          "text_encoder": {
+            "mismatched": 0,
+            "missing": 0,
+            "unexpected": 0
+          },
+          "unet": {
+            "mismatched": 0,
+            "missing": 0,
+            "unexpected": 0
+          },
+          "vae": {
+            "mismatched": 0,
+            "missing": 0,
+            "unexpected": 0
+          }
+        }
+      },
+      "peak_cuda_alloc_mib": 3870.4,
+      "ply_bytes": 1511297,
+      "ply_count": 26981,
+      "ply_path": "/data/out/g1-2/minipc.ply",
+      "sum_stage_wall_s": 108.2
+    }
+  }
+}

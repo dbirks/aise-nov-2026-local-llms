@@ -1,0 +1,27 @@
+{
+  "_comment": "Inputs for splat-lab g1 (LGM). The Job downloads each file once into /data/in/g1/ and verifies sha256. `crop` is [x0, y0, x1, y1] in source pixels, applied before LGM's cut-out + re-centre step; `null` means use the file as-is. Licences recorded 2026-11-16 from the Commons file pages (imageinfo extmetadata).",
+  "inputs": [
+    {
+      "name": "gtx1070",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/NVIDIA-GTX-1070-FoundersEdition-FL.jpg/1280px-NVIDIA-GTX-1070-FoundersEdition-FL.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:NVIDIA-GTX-1070-FoundersEdition-FL.jpg",
+      "sha256": "29aeae8c880a65e467059a4f3338d976d6af8e8ba6c1a1dea3b067f489a56325",
+      "license": "Public domain",
+      "artist": "Evan-Amos (own upload to Wikimedia Commons)",
+      "credit": "File: NVIDIA-GTX-1070-FoundersEdition-FL.jpg by Evan-Amos, Wikimedia Commons, public domain",
+      "crop": null,
+      "note": "NVIDIA GeForce GTX 1070 Founders Edition — the same GPU model as the one these splats were generated on."
+    },
+    {
+      "name": "minipc",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/20200330_104316_Fujitsu_ESPRIMO_mini_PC.jpg/1280px-20200330_104316_Fujitsu_ESPRIMO_mini_PC.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:20200330_104316_Fujitsu_ESPRIMO_mini_PC.jpg",
+      "sha256": "295bb8584b45ea2f251e0ac0b3bec7f27ce5c90f1d0934d9e9a392f057bbf24e",
+      "license": "CC0 1.0 Universal",
+      "artist": "Rakoon (own upload to Wikimedia Commons)",
+      "credit": "File:20200330 104316 Fujitsu ESPRIMO mini PC.jpg by Rakoon, Wikimedia Commons, CC0 1.0",
+      "crop": [0, 105, 1280, 585],
+      "note": "Small form-factor PC (front view, USB/audio ports visible) used as the 'small home server' subject. Cropped to drop clutter behind the device."
+    }
+  ]
+}

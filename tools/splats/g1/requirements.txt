@@ -1,0 +1,34 @@
+# splat-lab g1 (LGM) — Python deps installed into /data/cache/venv-lgm (a --system-site-packages
+# venv, so torch/torchvision/cuDNN come from pytorch/pytorch:2.7.1-cuda12.6-cudnn9-runtime).
+# Versions are pinned to a set that (a) still loads Hugging Face *custom pipelines*
+# (`trust_remote_code` + `pipeline_mvdream.py`, removed from diffusers in later releases) and
+# (b) predates the transformers APIs that custom code no longer matches. Installed 2026-11-16.
+#
+# Deliberately absent:
+#   xformers                     -> SM70+ kernels only; replaced by the SDPA shim in vendor/xformers
+#   diff-gaussian-rasterization  -> CUDA extension we never call (save_ply only); vendor stub
+#   kiui                         -> heavy mesh/vis deps; the 4 helpers LGM needs are vendored
+#   nvdiffrast                   -> mesh extraction (convert.py), not used
+#   gradio/dearpygui/lpips/...   -> GUI/eval only
+diffusers==0.32.2
+transformers==4.46.3
+accelerate==1.1.1
+huggingface-hub==0.25.2
+safetensors==0.4.5
+tokenizers==0.20.3
+sentencepiece==0.2.0
+einops==0.8.0
+tyro==0.9.5            # core/options.py imports tyro at module scope
+# numpy deliberately UNPINNED: the image ships 2.2.6 and torch 2.7.1+cu126 is built against it, so
+# forcing 1.x here would shadow it with an ABI torch was not compiled for (the venv is
+# --system-site-packages). rembg -> pymatting -> numba may pull a slightly older 2.x into the venv;
+# the installed set is recorded in $OUT/pip-freeze.txt by run.sh.
+pillow==11.0.0
+opencv-python-headless==4.10.0.84
+plyfile==1.0.3
+roma==1.5.1
+tqdm==4.67.1
+requests==2.32.3
+# background removal (LGM's own input prep): onnxruntime + u2net (176 MB, cached in $U2NET_HOME)
+rembg==2.0.59
+onnxruntime==1.20.0

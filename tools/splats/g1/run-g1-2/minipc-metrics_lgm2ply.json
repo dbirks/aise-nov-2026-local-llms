@@ -1,0 +1,149 @@
+{
+  "ckpt": "model_fp16_fixrot.safetensors",
+  "config": "big",
+  "cuda": "12.6",
+  "device": "NVIDIA GeForce GTX 1070",
+  "elevation": 0.0,
+  "forward_s": 0.56,
+  "gaussians": {
+    "expected_4_x_splat_size_sq": 65536,
+    "kept_after_opacity_prune": 26981,
+    "prune_opacity": 0.005,
+    "total": 65536
+  },
+  "input_size": 256,
+  "load_s": 3.9,
+  "peak_cuda_alloc_mib": 1329.6,
+  "peak_cuda_reserved_mib": 1970.0,
+  "ply": {
+    "bounds_max": [
+      0.5098,
+      0.4619,
+      0.3564
+    ],
+    "bounds_min": [
+      -0.4956,
+      -0.5356,
+      -0.394
+    ],
+    "bytes": 1511297,
+    "centre": [
+      0.0071,
+      -0.0369,
+      -0.0188
+    ],
+    "count": 26981,
+    "extent": [
+      1.0054,
+      0.9976,
+      0.7505
+    ],
+    "f_dc_mean": [
+      -0.238,
+      -0.29,
+      -0.331
+    ],
+    "opacity_logit": {
+      "max": 13.802,
+      "min": -5.293
+    },
+    "properties": [
+      "x",
+      "y",
+      "z",
+      "f_dc_0",
+      "f_dc_1",
+      "f_dc_2",
+      "opacity",
+      "scale_0",
+      "scale_1",
+      "scale_2",
+      "rot_0",
+      "rot_1",
+      "rot_2",
+      "rot_3"
+    ]
+  },
+  "repo": "ashawkey/LGM",
+  "save_ply_s": 0.07,
+  "seed": 42,
+  "splat_size": 128,
+  "stage": "lgm2ply",
+  "state_dict": {
+    "loaded": 376,
+    "missing_keys": [],
+    "unexpected_keys": []
+  },
+  "stats": {
+    "opacity": {
+      "max": 1.0,
+      "mean": 0.44165,
+      "min": 0.005
+    },
+    "pos_xyz": [
+      {
+        "max": 0.50977,
+        "mean": 0.00769,
+        "min": -0.49561
+      },
+      {
+        "max": 0.46191,
+        "mean": -0.01282,
+        "min": -0.53564
+      },
+      {
+        "max": 0.35645,
+        "mean": -0.01059,
+        "min": -0.39404
+      }
+    ],
+    "rgb": [
+      {
+        "max": 0.98926,
+        "mean": 0.43273,
+        "min": 0.00244
+      },
+      {
+        "max": 0.98926,
+        "mean": 0.41819,
+        "min": 0.00439
+      },
+      {
+        "max": 0.98975,
+        "mean": 0.40649,
+        "min": 0.00439
+      }
+    ],
+    "rotation_quat_norm": {
+      "max": 1.0,
+      "min": 1.0
+    },
+    "scale": [
+      {
+        "max": 0.04009,
+        "mean": 0.00553,
+        "min": 5e-05
+      },
+      {
+        "max": 0.04866,
+        "mean": 0.00351,
+        "min": 1e-05
+      },
+      {
+        "max": 0.06586,
+        "mean": 0.00557,
+        "min": 1e-05
+      }
+    ]
+  },
+  "torch": "2.7.1+cu126",
+  "view_order": [
+    1,
+    2,
+    3,
+    0
+  ],
+  "views_dir": "minipc",
+  "wall_s": 4.6,
+  "weights_mib": 791.6
+}

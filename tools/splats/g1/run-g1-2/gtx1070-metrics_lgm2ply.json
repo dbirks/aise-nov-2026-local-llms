@@ -1,0 +1,149 @@
+{
+  "ckpt": "model_fp16_fixrot.safetensors",
+  "config": "big",
+  "cuda": "12.6",
+  "device": "NVIDIA GeForce GTX 1070",
+  "elevation": 0.0,
+  "forward_s": 0.58,
+  "gaussians": {
+    "expected_4_x_splat_size_sq": 65536,
+    "kept_after_opacity_prune": 29299,
+    "prune_opacity": 0.005,
+    "total": 65536
+  },
+  "input_size": 256,
+  "load_s": 119.1,
+  "peak_cuda_alloc_mib": 1329.6,
+  "peak_cuda_reserved_mib": 1970.0,
+  "ply": {
+    "bounds_max": [
+      0.4475,
+      0.4246,
+      0.4541
+    ],
+    "bounds_min": [
+      -0.4954,
+      -0.5322,
+      -0.4966
+    ],
+    "bytes": 1641105,
+    "centre": [
+      -0.0239,
+      -0.0538,
+      -0.0212
+    ],
+    "count": 29299,
+    "extent": [
+      0.9429,
+      0.9568,
+      0.9507
+    ],
+    "f_dc_mean": [
+      -0.245,
+      -0.258,
+      -0.337
+    ],
+    "opacity_logit": {
+      "max": 13.802,
+      "min": -5.293
+    },
+    "properties": [
+      "x",
+      "y",
+      "z",
+      "f_dc_0",
+      "f_dc_1",
+      "f_dc_2",
+      "opacity",
+      "scale_0",
+      "scale_1",
+      "scale_2",
+      "rot_0",
+      "rot_1",
+      "rot_2",
+      "rot_3"
+    ]
+  },
+  "repo": "ashawkey/LGM",
+  "save_ply_s": 0.07,
+  "seed": 42,
+  "splat_size": 128,
+  "stage": "lgm2ply",
+  "state_dict": {
+    "loaded": 376,
+    "missing_keys": [],
+    "unexpected_keys": []
+  },
+  "stats": {
+    "opacity": {
+      "max": 1.0,
+      "mean": 0.51907,
+      "min": 0.005
+    },
+    "pos_xyz": [
+      {
+        "max": 0.44751,
+        "mean": 0.00214,
+        "min": -0.49536
+      },
+      {
+        "max": 0.42456,
+        "mean": -0.00214,
+        "min": -0.53223
+      },
+      {
+        "max": 0.4541,
+        "mean": -0.00737,
+        "min": -0.49658
+      }
+    ],
+    "rgb": [
+      {
+        "max": 0.99121,
+        "mean": 0.43097,
+        "min": 0.0
+      },
+      {
+        "max": 0.9873,
+        "mean": 0.42733,
+        "min": 0.00049
+      },
+      {
+        "max": 0.97949,
+        "mean": 0.405,
+        "min": 0.00073
+      }
+    ],
+    "rotation_quat_norm": {
+      "max": 1.0,
+      "min": 1.0
+    },
+    "scale": [
+      {
+        "max": 0.03595,
+        "mean": 0.00503,
+        "min": 2e-05
+      },
+      {
+        "max": 0.03919,
+        "mean": 0.00363,
+        "min": 2e-05
+      },
+      {
+        "max": 0.03964,
+        "mean": 0.00455,
+        "min": 0.0
+      }
+    ]
+  },
+  "torch": "2.7.1+cu126",
+  "view_order": [
+    1,
+    2,
+    3,
+    0
+  ],
+  "views_dir": "gtx1070",
+  "wall_s": 119.9,
+  "weights_mib": 791.6
+}
