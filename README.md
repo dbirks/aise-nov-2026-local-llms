@@ -280,6 +280,192 @@ Potential 15-second sequence: choose "dense," "MoE fully GPU-resident," "MoE exp
 **Open technical checks:** which Qwen3.6 MoE quant+llama.cpp build supports \`--moe-cache-mib\` correctly; workload-specific PCIe/CPU speed tradeoffs; whether a particular released companion drafter runs unmodified in the version of vLLM/llama.cpp available at presentation time.
 
 
+## Deep-dive research — model passes, roofline, drafter VRAM, and Engram (2026-11-16)
+
+> **Working content inventory and 3D implementation briefs; not speaker notes, final slide order, or final benchmark data.** This follows the speaker's latest questions: What actually moves on each forward pass? When is memory bandwidth the limiting factor? How is prefill different from decode? How much VRAM does a speculative drafter cost? Where did DeepSeek's Engram originate, and which released model used it? This section is an extended technical research brief, intended to give a coding agent enough conceptual detail to build real, accurate interactive scenes.
+
+### 1. "All the weights go through the GPU every token" — useful intuition, but needs precision
+
+**First separate three places:**
+
+1. **Persistent storage**: model checkpoint on SSD/HDD, normally used at loading time, not reread for each token in a fully resident setup.
+2. **Working memory**: model tensors held in GPU **HBM/VRAM** (or CPU DRAM for offloaded tensors), together with KV cache, activations, runtime workspace and optional drafter.
+3. **Execution units**: GPU SMs / tensor cores, registers, shared memory and on-chip caches. Kernels pull tiles/segments of resident weights from HBM via the memory hierarchy, perform computations, write results, and advance to the next layer. **We don't physically copy the entire model out of VRAM and back into VRAM each token.** Most dense layers *use* almost every parameter each step; this typically entails substantial HBM-to-compute-unit traffic, but HBM caching, fusion, architecture and batching matter.
+
+**Illustrative, non-hybrid, decoder-only dense-model inference path:**
+
+\`token IDs → token embedding lookup → residual stream → [attention norm → Q/K/V projections → attend to past K/V → output projection → residual addition → FFN norm → up/gate/down projections → residual addition] × L layers → final norm → output vocabulary logits → sampling/selection → next token\`.
+
+- The embedding is a **row lookup**, not a multiplication against the full vocabulary embedding matrix.
+- Attention projection/FFN weights are matrix operations performed in each relevant layer, usually by resident GPU kernels.
+- **KV cache** stores attention **states derived from earlier tokens**, avoiding recalculating earlier layer activations every time. Standard full attention *reads* the previously cached K/V when computing a new token; sliding-window/sparse/MLA/hybrid architectures read and store different amounts or different forms of state.
+- Logit projection across the vocabulary may access an output head; some implementations tie embeddings or fuse operations.
+- Layers generally have **sequential data dependencies**: each layer produces the hidden states the next consumes. Within a layer, large groups of multiply-adds execute massively in parallel; separate GPUs can use tensor/pipeline parallelism, but don't depict all layers simultaneously processing one token in ordinary single-GPU inference.
+- **Dense vs MoE difference:** in a dense FFN, most FFN parameters are used for each token. In an MoE FFN, a router chooses a subset of expert matrices per token/layer (plus any shared expert). Only chosen experts are computed for that token; at large batches more distinct experts may be accessed across the batch. All expert weights still need accessible storage or an offloading plan.
+- **Engram / PLE difference:** look up **a small number of learned n-gram embedding rows** instead of running a big matrix multiply over all table entries.
+- **Speculative decoding difference:** target *verifies multiple candidate positions in one pass*, while a separate drafter may run its own computation; accepted output cannot be inferred from "target read once" alone.
+
+**What "one forward pass" means:** a run of model layers on the currently scheduled token positions. During **prefill**, this can mean hundreds/thousands of positions at once, with attention masks and key/value writes. During **decode**, without speculative decoding, it is typically **one new position per active sequence** in that iteration, using saved past state. A packed batch of 16 active requests processes 16 token positions (not one). A draft-verification pass can process K candidate positions per request.
+
+**15-second narration draft:** "The model usually stays in VRAM. The expensive part at batch one is repeatedly pulling its active weight matrices from GPU memory into the compute units to predict just one more token. Prefill can reuse those weights across thousands of prompt positions."
+
+**Accuracy traps:** do **not** draw checkpoint files reloading from SSD every generated token in the resident case; don't claim every *stored* MoE expert weight is multiplied every token; don't equate KV cache with model parameters; don't imply FFN and attention execute sequentially at the individual multiply-add level.
+
+Primary performance sources: [vLLM, Anatomy of an Inference System](https://vllm.ai/blog/2025-09-05-anatomy-of-vllm); [NVIDIA, co-design attention for long contexts](https://developer.nvidia.com/blog/?p=120729); [vLLM optimization guide](https://docs.vllm.ai/en/stable/configuration/optimization/).
+
+### 2. Prefill versus decode — why hardware's compute cores and memory bandwidth matter differently
+
+**Prefill**: ingest the uncached input prompt (or new uncached prefix). Many prompt token positions pass through the model concurrently. Matrix **multiplications** are large, so a weight tile loaded from HBM can be reused while processing many token vectors. This increases **arithmetic intensity** (FLOPs per byte of traffic), often pushing prefill toward compute-bound. For standard attention, processing a long prompt also requires attention math and working-memory traffic, so long-context cost is not exclusively FFN compute. Time-to-first-token (**TTFT**) includes queueing, tokenization, prefill, and often first decode/sampling.
+
+**Decode**: append tokens autoregressively; for each step, each active sequence supplies a small amount of new token data, while the engine must apply the target's active weights again. Small matrix-vector / small-batch matrix operations have relatively little arithmetic per weight byte. For a single stream, decode is therefore **often HBM-bandwidth-bound**; with long contexts, cached K/V *reads* and attention kernels become additional important bottlenecks. Inter-token latency (**ITL**) and output tokens/second matter here.
+
+**Not absolute rules**:
+
+- A **short prefill** after a very long cached prefix may be memory-bound and look more like decode.
+- A **large decode batch**, a wide speculative verification pass, or an unusual architecture/kernel can raise arithmetic intensity enough to become **compute-bound**.
+- At high concurrency, the relevant limit may be KV capacity, scheduling, GPU memory allocation, PCIe/offload, kernel launches, or attention rather than bandwidth alone.
+- Model weight quantization reduces weight bytes fetched and VRAM residency, but it also changes kernel choice, dequantization overhead and mathematical throughput. Inference latency never follows "bits" perfectly.
+- GPUs provide both **compute capability** (FP/BF16/FP8/FP4 tensor core ops/sec) and **HBM bandwidth** (bytes/sec); one does not imply the other. PCIe, CPU DRAM and NVMe are further distinct tiers.
+- **Hybrid architectures** (Gated DeltaNet, Mamba, sliding attention, compressed/sparse attention, CED) can reduce or move some cache/compute costs. Don't use a standard quadratic attention animation to claim it models Qwen3.8-Flash-Next or DeepSeek-V4.1 exactly.
+
+**Roofline relationship (model, not universal benchmark):**
+
+\`Arithmetic intensity I = useful operations / bytes moved\`.
+
+\`Attainable performance <= min(peak hardware FLOP/s, effective bandwidth × I)\`.
+
+An illustrative BF16 matrix \`W\` with \`M × N\` elements, applied to \`B\` token vectors, costs about \`2MNB\` multiply-add FLOPs and at least \`2MN\` bytes just to fetch the BF16 weights; **ignoring other traffic**, its weight-only intensity is approximately **B FLOP/byte**. At \`B=1\` it is low; at \`B=128\` it can be much higher. This is an **idealized** example: KV traffic, activations, output writes, quantization scales, padding, cache reuses and actual kernel efficiency modify the roofline.
+
+**Memory-bandwidth floor example (explicitly hypothetical):** if a dense model's active weight footprint is 20 GB and the effective weight-sustaining bandwidth were 1 TB/s, a full scan of those weight bytes alone would take 20 ms, before KV reads, compute, dispatch, transfers and overhead. Real engines do not achieve a guaranteed 50 tokens/sec from this quotient; it's a **lower-bound intuition**, not a measured prediction.
+
+**Why batching helps:** one set of weight tiles can help compute many current positions from different requests; total tokens/sec often rises, while each user's latency can also change. Larger batches consume more KV/state, and at saturation can raise queue time. This is why **single-request tokens/sec** and **aggregate tokens/sec** should never be used interchangeably. vLLM's chunked-prefill scheduling intentionally combines compute-heavy prefill work with decode requests when possible.
+
+Sources: [NVIDIA 2026 prefill/decode roofline explanation](https://developer.nvidia.com/blog/?p=120729), [NVIDIA hardware co-design](https://developer.nvidia.com/blog/ai-model-co-design-hardware-friendly-llm-design/), [vLLM optimization](https://docs.vllm.ai/en/stable/configuration/optimization/), [vLLM Anatomy](https://vllm.ai/blog/2025-09-05-anatomy-of-vllm).
+
+### 3. The drafter also needs memory; speculative decoding trades memory for computation
+
+**Don't say "speculation is free speed."** At runtime the machine must hold resources for:
+
+- target model weights (perhaps quantized);
+- target-model KV cache and hybrid recurrent attention/state;
+- the drafter's **own weights** if it is a separate learned network, plus its possible draft KV/feature state;
+- intermediate draft candidates, logits, acceptance buffers, draft/verify workspaces, graph capture buffers and other runtime costs;
+- any native MTP heads / added target checkpoint components, where applicable.
+
+The memory profile is **method-dependent**: an n-gram prompt lookup heuristic can require very little extra model memory; native MTP may add a few prediction layers/heads; EAGLE-style external drafters and DFlash-family drafters have separate weights/feature buffers, with cache/state costs differing by method. Do not assume every drafter requires its own full independent KV cache in exactly the same form: inspect the engine's implementation. Quantizing the drafter changes resource tradeoffs and may affect candidate quality/acceptance.
+
+For a **fixed VRAM capacity**, every extra GiB spent on draft weights and workspace is a GiB not available to other model instances, cache capacity, or concurrency. Extra drafter computation may also reduce throughput at high batch even when acceptance rises.
+
+**Actual decision to visualize:** target-only is more memory-efficient but may need a separate target pass per token. Enabling a drafter can reduce target passes per emitted token **if the accepted prefix is long enough to outweigh drafting/verification overhead**. The same extra GPU reservation could instead fund more KV-cache blocks and retain expensive agent prefixes. These are competing uses of a limited resource.
+
+**15-second narration draft:** "A drafter is another occupant of your VRAM, not magic. It can reduce the number of expensive target passes, but the memory it uses comes directly out of your budget for context, cached prefixes, and concurrent agents."
+
+Primary sources: [NVIDIA NIM speculative-decoding memory comparison](https://docs.nvidia.com/nim/large-language-models/2.0.13/advanced-use-cases/speculative-decoding.html), [vLLM speculative configuration](https://docs.vllm.ai/en/latest/api/vllm/config/speculative/), [home-k8s #80: real drafter acceptance experiment](https://github.com/dbirks/home-k8s/issues/80).
+
+### 4. Engram: DeepSeek's **conditional memory** as another capacity axis
+
+**Spelling:** **Engram**, not "Ingram". In DeepSeek's research this is a learned, addressable *conditional memory* module—distinct from the request's KV cache and distinct from external retrieval/RAG, document memory, or prompt-n-gram speculative drafting.
+
+#### Origins / exact chronology — don't misattribute the first use
+
+- **2026-01-12:** DeepSeek researchers published [*Conditional Memory via Scalable Lookup: A New Axis of Sparsity for Large Language Models*](https://arxiv.org/abs/2601.07372). This introduced the **Engram architecture** and reported an experimental **Engram-27B** model compared against an equal-parameter/equal-compute MoE baseline. The paper is the **first research demonstration** in this timeline, not a DeepSeek V4 product announcement.
+- **2026-04-24:** [DeepSeek V4 Preview](https://deepseek.com/en/news/v4-preview/) launched **DeepSeek-V4-Pro** and **DeepSeek-V4-Flash**, describing compressed attention + mHC and MoE. The publicly described architecture does **not** identify Engram as a shipped component; don't assert "Engram debuted in V4."
+- **2026-08-26:** [Qwen3.8-Flash-Next released](https://github.com/QwenLM/Qwen3.8-Flash-Next/blob/main/README.md) with its related **PLE** n-gram embedding table (about **51B** learned parameters). This is a separate Qwen implementation. It appeared publicly **before** DeepSeek's named V4.1 release, so do not say DeepSeek-V4.1 was the first *industry* production model to use n-gram lookup weights.
+- **2026-09-10:** [DeepSeek-V4.1-Flash announcement](https://www.deepseek.com/en/news/deepseek-v4-1-flash/) and [official model card](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash) explicitly name **196B Engram conditional-memory parameters**. This is the **first released DeepSeek model verified here using Engram**, as opposed to the January experimental Engram-27B. Its [technical report](https://arxiv.org/abs/2609.19969) appeared September 17.
+- The production version **does not have to be identical to the January research demo**. If the visualization shows a short convolution or original gate, mark it "paper/demo" unless confirmed for the selected deployed version.
+
+**Strong 10-second talk line:** "DeepSeek published Engram in January. A few months later, Qwen's Flash-Next put a related giant n-gram table into an actual model. By September, DeepSeek's V4.1-Flash shipped with **196 billion lookup-memory parameters**. Huge stored capacity, without computing with every entry for every token."
+
+#### How an Engram lookup actually works (from official code)
+
+1. Start with recent **token IDs**—e.g. the current token and up to a few predecessors. DeepSeek's implementation maps IDs to a **compressed normalized token space**, so some superficial token distinctions collapse before hashing. This is a deterministic token-ID transformation, not a search over embedding cosine similarities.
+2. Form **local n-grams** ending at the current position (for DeepSeek-V4.1-Flash, **2-, 3-, and 4-grams**) and compute hash addresses with multiple hash heads. Hash collisions are possible and handled statistically, not eliminated by having "unique semantic slots."
+3. Use the addresses to **gather only selected rows** from very large learned embedding tables. No giant matrix multiplication over all stored rows and no need to run a selected MoE MLP just to fetch an entry. The learned rows are immutable model parameters during inference.
+4. Transform/merge the gathered vectors and combine with the evolving network hidden state, including **context-sensitive fusion/gating** as appropriate for the implementation. The raw hash has no contextual understanding; the network decides how to use the retrieved signal.
+5. Continue normal model computation. Because the lookup addresses follow known token IDs, the system can often **prefetch** needed rows from host memory before the layer needs them, hiding some transport latency. But slower host RAM/SSD can still be a bottleneck, especially on long prefill with many random accesses; prefetch effectiveness and cache locality are measurable properties, not guarantees.
+
+**Concrete DeepSeek V4.1 implementation detail:** the official [inference/engram.py](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash/blob/main/inference/engram.py) declares Engram layers at model indices **1 and 14** (zero-based), **8 hash heads for each of 2-, 3-, and 4-grams**, hence **24 selected table rows per Engram layer per token** and **48 row selections across those two layers**, subject to masking/padding and implementation details. The full table is **196B learned parameters**; this is not equivalent to 196B active neural compute at each token.
+
+For the **original research demo**, [DeepSeek's public engram_demo_v1.py](https://github.com/deepseek-ai/Engram/blob/main/engram_demo_v1.py) additionally illustrates a contextual gate and a short causal convolution. It explicitly mocks conventional attention/MoE layers; do not portray that demo as a complete production transformer.
+
+**Important architectural side-note:** DeepSeek-V4.1-Flash is *also* an unusual **40-layer causal encoder/decoder** model (20+20). Its official model card says **8B active parameters per token during prefill versus 16B during decode** for that architecture. That is not because all LLMs use half their layers for prefill. It is a deliberate V4.1 design; if visualizing V4.1 directly, do not reuse a vanilla decoder-only "every layer for prefill" storyboard without adapting the graph.
+
+Sources: [Jan Engram paper](https://arxiv.org/abs/2601.07372); [official DeepSeek Engram repo](https://github.com/deepseek-ai/Engram); [V4.1 model card](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash); [V4.1 inference Engram source](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash/blob/main/inference/engram.py).
+
+#### Compare DeepSeek Engram to the speaker's real Pennyroyal PLE setup
+
+**DeepSeek V4.1:** two Engram lookup modules, huge 196B parameters, layer-dependent hash addresses, learned fusion. Its offload path may be host memory, other serving stacks may use different placements. Do not claim that the speaker personally ran this enormous model on their one GPU; [home-k8s #127](https://github.com/dbirks/home-k8s/issues/127) is an **investigation/plan** for large-model NVMe Engram/expert streaming, not proof it worked.
+
+**Qwen3.8-Flash-Next / Pennyroyal:** about **51B PLE/n-gram weights**, selected rows fetched from a dedicated NVMe-backed table in the speaker's configured runtime. Actual settings in [home-k8s Pennyroyal manifest](https://github.com/dbirks/home-k8s/blob/main/apps/pennyroyal-flashnext.yaml): \`PENNY_PLE_BACKEND=nvme\` and \`PENNY_PLE_NVME_MODEL=/models/flash-next-ple\`; [issue #135](https://github.com/dbirks/home-k8s/issues/135) documents the reason (host RAM too small for the conventional PLE+HiCache setup). This is not generic "MoE offload," and the *model-weight* PLE table is not prompt data stored as a persistent disk cache.
+
+**Excellent practical comparison:** Qwen's table is still part of the model; if it's not permanently resident in VRAM, that leaves VRAM for the actual compute layers, KV cache and multiple agents. The tradeoff is **latency and throughput of targeted memory lookups** from the slower tier. Different tables/models have different n-gram orders, hash heads, dimensionality, gating and prefetch.
+
+#### What Engram is **not**
+
+- **Not** a traditional external database/RAG retrieval call: the addresses and contents are learned inside the model architecture.
+- **Not** speculative decoding's heuristic **n-gram matching**: that method finds repeats in existing prompts/output without huge trained memory tables.
+- **Not** the KV or prefix cache: those are request-dependent, computed states; Engram tables are static trained parameters.
+- **Not** MoE expert computation: a hash indexes stored embedding vectors, whereas a router chooses FFN expert computation.
+- **Not** a guarantee that SSD offloading is free: access pattern, random I/O overhead, prefetch schedule, SSD throughput, filesystem/page-cache use and host staging all matter.
+- **Not** a property of every Qwen3.6-35B-A3B model: MoE and n-gram memory are independent design choices.
+
+### Detailed 3D scene briefs for a later coding agent
+
+These are *new candidate scenes*, not a request to implement them immediately. Build as a navigable library; show some in 15 seconds and allow optional drill-down.
+
+**Scene F — One decode pass, from HBM to token**
+
+- World layout: physical-looking GPU card with an HBM slab along back, a row of SM/tensor-core clusters near front, and a transparent left-to-right tower of model layers above. Show an input token column, current residual vector, the active layer plane, attention KV blocks, per-layer FFN matrices, and final logits.
+- Animation: select token → embedding lookup → layer 0 tile stream from HBM to SMs → Q/K/V and attention read from **already cached** K/V → FFN → residual → repeat to layer L → final logits/sampling → append token and update cache/state. No SSD traffic per token unless an explicitly enabled offload path.
+- Interaction: scrub layers, toggle dense/MoE, show all stored experts as dim blocks but only selected experts stream, toggle early-stop after layer 2, show dynamic lookup rows for Engram separately, hover over K/V state vs weight blocks. Graph legend includes **stored bytes, active weights touched, KV bytes read, total bytes moved**.
+- Correctness: **not** a literal per-transistor GPU simulator; memory hierarchy is representative. Do not show one huge instantaneous transfer of the whole model or movement of weight files into VRAM each decode. Describe only active tensors.
+
+**Scene G — Prefill/decode split across exactly the same model and GPU**
+
+- Two parallel mirrored stages, shared same schematic GPU and model weights. Left: 2,048-position prompt, many token columns flowing through layer matrix operations together; load each weight tile and reuse across columns; K/V gradually filled. Right: one new position and a long bank of existing K/V; repeat the weight read for each generated token.
+- A synchronized counter tracks **prompt tokens consumed**, **output tokens emitted**, **forward passes**, **FLOPs**, **weight bytes fetched**, **KV bytes accessed**, and **measured-or-simulated wall time**. Distinguish per-position model mathematics from actual kernel launches and scheduler steps.
+- Controls: prompt length, active batch size, context length, model weight precision, bandwidth, tensor compute; simulated performance labeled prominently. Toggle a **short cached-prefix prefill** to show why the slogan "prefill always compute-bound" is not universally true.
+- Camera: start from one model cross-section, fork into side-by-side scenes, then zoom into the GPU's separate bandwidth and compute meters.
+
+**Scene H — Roofline: compute versus bandwidth**
+
+- Use 3D only where spatial depth carries a meaning. Set X=arithmetic intensity (FLOPs/byte), Y=attainable compute throughput (FLOP/s); Z may be batch size *only if* clearly identified, otherwise keep a 2D roofline floating inside an orbitable 3D GPU housing. The limiting envelope is \`min(P_peak, BW × intensity)\`; beneath ramp=memory-bound; above plateau=compute-bound.
+- Prefill and decode markers *move with workload controls* rather than existing at fixed universal positions. Render weight traffic as flow to cores; more batch means greater tile reuse; 4-bit weight format changes both bytes and available kernels. Highlight that lowering cache precision may buy more concurrent sequences but introduces accuracy/attention-kernel tradeoffs.
+- Explain why "GPU is 100% busy" or "CUDA cores are fast" is insufficient to infer compute bound. Hardware meters should be based on sourced specs or explicitly labeled illustrative.
+
+**Scene I — Drafter VRAM budget and what you give up**
+
+- Exploded VRAM slab with regions for target weights, cache blocks, hybrid state, workspaces, CUDA graphs, then optional drafter weights and state. Toggle \`target-only\`, \`MTP\`, \`EAGLE-3\`, \`DFlash\`, \`DSpark\`. Resize memory allocations per selected real model/config or make all values explicitly simulated.
+- Above VRAM, show target forward-pass timeline. Target-only requires one target step per output token; speculative mode proposes and verifies blocks. A good drafter can reduce sequential target passes, but some KV blocks vanish to make room for draft weights. Show **TTFT/ITL, accepted length, end-to-end tokens/sec, cached-prefix retention, max active sequences** as independent metrics, not a single "faster" indicator.
+- Add an **"agent workload"** mode with 8 competing long-prefix requests: sometimes extra KV capacity is more valuable than draft speed. A mode with bad acceptance lets drafter overhead make things worse.
+- Accessibility: present two explanatory states (with/without drafter) that can be switched in <15 seconds without complex interaction.
+
+**Scene J — Engram from token IDs to sparse lookup**
+
+- Geometry: token IDs as a recent-context ribbon; compressed-normalized IDs drop below; 2-/3-/4-gram windows overlap along X; hash heads fan into a **vast, mostly inactive** learned-memory table rendered as a 3D city of rows; only selected rows light up. Connect selected vectors into a fusion gate beside a transformer layer residual-state tube.
+- Distinguish **addresses computed from token IDs** (deterministic) from **relevance/suppression** (learned context-dependent fusion). Show hash collisions by deliberately mapping two different n-grams to same bucket in a *toy* table; label toy dimensions.
+- Controls: N-gram length, hash heads, table capacity (toy), active layer, original-paper prototype vs DeepSeek-V4.1 product profile (different architectural details), Qwen PLE comparison. Keep actual selected row count/positions tied to a particular model config; don't invent token-weight vectors.
+
+**Scene K — Engram offloading / storage hierarchy**
+
+- Show a huge model-parameter library split among **GPU VRAM**, **CPU RAM**, **NVMe**. A thin lookup stream extracts a few rows each token into staging buffers while GPU attention/MoE layers run. Three moving gauges: **capacity**, **fetch bandwidth/latency**, **memory available for KV and drafter**.
+- Compare DeepSeek V4.1 host-RAM/offload design (architecture concept) and the speaker's measured/configured Pennyroyal NVMe-PLE path. Never mix Engram table storage with host HiCache, KV cache, or CPU MoE expert bank.
+- Toggle 3 bad cases: random read latency dominates, prefetch too late, page cache blows up system RAM. Show a positive case where addressing early and small row reads hides enough of the transfer. These are scenarios, not claims of measured performance.
+
+**Scene L — Engram history timeline**
+
+- Four independent dated cards: January 12 DeepSeek Engram-27B research → April 24 DeepSeek V4 without documented Engram → August 26 Qwen3.8-Flash-Next with PLE → September 10 DeepSeek V4.1-Flash with 196B Engram. Short transitions between paper model and actual released architecture; don't imply direct lineage of Qwen's code or that original V4 used Engram.
+- Keep research-model, shipped-model and separate vendor implementation visually different. A fifth optional inset shows the **DeepSeek V4.1 CED-specific** asymmetry of prefill/decode, explicitly not typical of all LLMs.
+
+### Research questions to answer later with real speaker data
+
+- Which GPU should anchor the bandwidth/compute numbers (RTX 5090 eGPU, RTX PRO 6000 Blackwell, AMD R9700)? Confirm bandwidth/compute **and** actual inference engine benchmarks rather than substituting marketing peak figures for measured performance.
+- Which real target/drafter pair is best for the VRAM demonstration? Capture model/draft quantization, extra GPU allocation at boot, KV capacity before/after speculation, concurrency and acceptance distribution on representative agent tasks.
+- Which exact Qwen3.8-Flash-Next and Pennyroyal revisions/PLE quantizations are demonstrated? Distinguish NVMe PLE, in-memory HiCache, hybrid Mamba state, prefix caching, optional native NEXTN/MTP.
+- Can we retrieve an actual Nsight or engine trace to show weight-matrix HBM traffic, attention KV traffic and kernel occupancy? If not, explicitly label the GPU animation **schematic**.
+- If using the *first DeepSeek Engram model* claim, prefer "first confirmed released DeepSeek model incorporating Engram: V4.1-Flash" rather than "first model in the world," and distinguish January research prototype from September product.
+
+
 ## Slides (the deck)
 
 The deck is a Vite + React + TypeScript app in `src/`, built with **pnpm**. Visual direction comes from the Claude Design handoff in [`design/handoff/`](design/handoff/README.md): Jersey 15, sage monochrome, live three.js scenes with a pixel post-process.
