@@ -11,7 +11,7 @@ export const slides: Slide[] = [
     example: true,
     chip: 'LAB — Quantization',
     caption: {
-      title: 'Weights, activations, KV',
+      title: 'Three precision dials',
       body: BODY,
     },
     controls: [
