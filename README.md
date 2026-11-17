@@ -583,6 +583,160 @@ The [Pennyroyal manifest](https://github.com/dbirks/home-k8s/blob/main/apps/penn
 5. AMD R9700: retrieve independent **measured GPU memory throughput** and pair it with the coworker's actual Radiance results before displaying a comparable bandwidth row. Use the **640 GB/s rated** figure only if prominently flagged manufacturer peak, not as a measured result.
 
 
+## Focused self-teaching research: GPU cores, KV cache, shared prefixes, and per-token Engram (2026-11-16)
+
+> **Status: researched conceptual teaching notes and scene briefs, not finalized slides or presenter notes.** The speaker wants to understand these ideas rather than pretend to have mastered all the details. Preserve explanatory nuance. The existing pages in \`src/slides.ts\` are visuals/style experiments, **not the talk plan**. The eventual slides should show real mechanisms with labels, not just pretty visual metaphors.
+
+### Start with the three kinds of "memory" that sound similar but are not
+
+| Thing | Created when? | What is stored? | When reused? | Where? |
+| --- | --- | --- | --- | --- |
+| **Model weights** | Training/quantization, loaded for inference | Parameters of projection/FFN matrices, router/experts, and optional embedding/n-gram tables | Reused on *every applicable inference pass*; weights do not change from token to token | GPU VRAM if resident; optionally CPU RAM or a targeted NVMe backing tier |
+| **Per-request KV cache** | On prompt **prefill**, then incrementally during generation | **Key and value vectors at attention layers for processed positions**, not the original token IDs or a tiny token-to-position index | Subsequent tokens *in the same sequence* attend to cached past K/V instead of recomputing them | Usually GPU VRAM; possibly CPU/disk tiers depending on backend |
+| **Prefix cache / shared KV** | After a prompt or prefix has been processed and retained | Reusable portions of previous KV/state, indexed by the **exact processed prefix** and appropriate model/config context | A *different request* with a matching initial token prefix can skip redundant prefill for that region | GPU KV blocks, possibly host/disk offload; engine-specific |
+| **Engram / PLE n-gram weights** | Trained as part of a model; loaded/accessible at serving time | **Static learned rows of large hashed lookup tables** addressed using n-grams of token IDs | Lookup is performed for newly computed token positions, not only the beginning of a session; already-computed prefix work can be skipped through prefix caching | GPU, host DRAM, or specialized NVMe row lookup depending on implementation |
+
+**Big correction:** the phrase "KV cache remembers that at position 37 was token X" is false as a technical explanation. Token IDs are tracked for scheduling/tokenization and prefix matching, but the *KV contents* are the **contextual key and value feature vectors**, generally for each relevant layer and KV head at each position. For a given attention layer, \`k_i = W_K h_i\`, \`v_i = W_V h_i\`, and for the new position \`q_t = W_Q h_t\`; the new query attends to previously cached keys and values. Even the **same token ID** at different positions or following different prior tokens can have **different K/V state**. Q is generally not cached for previous positions because the new token only needs to query past K and read past V. The attention response is schematically \`softmax(q_t K_{\le t}^T / sqrt(d)) V_{\le t}\`. Actual grouped-query, multi-head, RoPE/position encodings and hybrid architectures vary.
+
+Sources: [vAttention description of per-layer K/V](https://www.microsoft.com/en-us/research/publication/vattention-dynamic-memory-management-for-serving-llms-without-pagedattention/); [vLLM KV cache architecture](https://docs.vllm.ai/en/latest/design/prefix_caching/); [DeepSeek official Engram code](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash/blob/main/inference/engram.py).
+
+### What a forward pass does, and what happens with **no** KV cache
+
+**With no KV cache**, a naive autoregressive runtime takes the entire known prefix—including the original prompt and every generated token—and **re-executes it** to compute the next-token output each decode step. It needn't recompute *all* token predictions for end-user output, but it usually recalculates earlier hidden states / attention-related work to produce the final logit. In an efficient engine **with** KV cache:
+
+1. **Prefill** the uncached prompt positions (often many at once). Each attention layer computes K/V for each processed prompt position, stores it, and produces the needed hidden states/logits.
+2. Sample/select the first output token from the final prompt logits.
+3. **Decode** the newly generated token only: run that **new position** through the model layers; each attention layer forms a new Q/K/V, reads historical K/V, stores the new K/V, and emits logits for the following token.
+4. Repeat. Earlier tokens' complete transformer layer computations are **not** rerun. Their cached K/V is still read as needed by attention. Dense weight matrices are still applied to the new token. The KV cache **avoids recomputing past positions**, not the cost of applying model weights at the next position.
+5. For standard full attention, the amount of historical KV read at each new token generally increases with context length, even though old token projections need not be recomputed. For sliding-window attention and recurrent/hybrid models, the state/read pattern is different.
+
+**Computational growth is polynomial, not exponential.** A simple way to explain it without committing to any one kernel:
+
+- If an initial context has \`P\` tokens and we generate \`T\` more, repeatedly processing the **entire** prefix without KV yields approximately \`P + (P+1) + ... + (P+T-1) = PT + T(T-1)/2\` **token positions executed** across the generation run. With KV, after initial prefill, only about \`T\` new token positions go through the network's projections/FFNs. **This example counts token-position processing, not all attention FLOPs.**
+- For an ordinary *full causal attention* implementation, the attention interaction count in a full sequence of length \`L\` scales **quadratically** (\`O(L²)\`). Recomputing full prefixes on every decode step can thus add up to **cubic** attention work in \`T\` for fixed small \`P\`. With KV, the incremental full-attention decode work is \`O(P T + T²)\`, plus the one-time \`O(P²)\` prompt prefill, for fixed model dimensions. Neither is exponential.
+- **Caveat:** these are asymptotic textbook/naive complexity terms. Real long-context attention kernels (FlashAttention, MLA, sliding windows, grouped-query, recurrent layers) have very different memory movement, constants, and sometimes different scaling. For a 30-minute talk, state "without KV we needlessly repeat earlier token processing; with KV we keep keys/values and only run each new position" before discussing big-O.
+
+**Proposed simple visual:** a four-token prompt \`A B C D\` and generation \`E F G\`. Disable KV: see four/five/six/seven token columns repeatedly illuminate on successive full passes. Enable KV: first prefill fills four columns of layer-specific K/V; next passes highlight only the new input token while a query beam reads old K/V. Show an operation counter that clearly says **processed token positions** vs **KV values read**, to avoid implying old memory is free.
+
+### GPUs: where **cores** come in
+
+**What the hardware actually offers:** a GPU contains multiple **streaming multiprocessors (SMs)**. The SM schedules many groups of threads (warps), has registers, shared SRAM and on-chip resources, and runs arithmetic. **Tensor Cores** specialize in tile-based matrix-multiply-accumulate operations, critical to transformer projections and FFNs. The terms **CUDA cores** and **Tensor Cores** should not be treated as two independent "parallel GPU devices" that each process a complete transformer layer; the whole SM runs coordinated kernels. Attention kernels also use scalar/vector operations for normalization, softmax, address/index logic, etc. Data moves from GPU **VRAM/GDDR/HBM** through caches/registers/shared memory into the execution hardware. Tensor-core throughput matters only if the workload can feed it.
+
+**Prefill:** with many prompt positions, operations on the same learned weight matrix become a **large matrix multiplication (GEMM)**. A loaded tile of the weights can be reused across multiple token vectors. Tensor Cores have more useful work to do per byte read. A full, long prefill is thus **often compute-bound**, depending on attention, memory layout, context length and hardware.
+
+**Decode, one active request:** applying a weight matrix to only one new token is closer to a **matrix-vector multiply (GEMV)** or tiny GEMM. The SMs have relatively little arithmetic per weight byte; sustained memory bandwidth often dominates. Simultaneously, attention reads the growing historical K/V, which can dominate at long contexts. The GPU may be busy but not saturating its available Tensor Core arithmetic capacity.
+
+**Decode, many active requests or multiple speculative positions:** batching increases available matrix rows (more arithmetic for each streamed weight tile). This can raise utilization and move the workload **toward compute-bound**, at the expense of more active KV, scheduler contention, possible long queue times or drafter memory. Some algorithms use specialized attention or recurrent kernels; don't claim "decode is always only bandwidth limited."
+
+**Useful roofline intuition:** \`arithmetic intensity = useful FLOPs / bytes moved\`. Performance is bounded by \`min(peak compute FLOP/s, sustained bandwidth × arithmetic intensity)\`. In one idealized BF16 weight matrix with \`M × N\` elements multiplied by \`B\` token vectors, weight fetches cost \`~2MN\` bytes while multiply-add arithmetic costs \`~2MNB\` FLOPs, suggesting **~B FLOP per weight byte** before accounting for activations, outputs, KV reads, other kernel work and caches. \`B=1\` is poorly amortized; large \`B\` can feed the Tensor Cores.
+
+**Honest presenter wording:** "I understand the high-level memory-vs-compute tradeoff now; individual kernels, kernel occupancy, shared-memory tiling, and the exact crossover point are still things I'm learning. That's exactly why we're visualizing what's happening rather than pretending every setup has one magic flag."
+
+Sources: [CUDA Programming Guide, Streaming Multiprocessors and warps](https://docs.nvidia.com/cuda/cuda-programming-guide/03-advanced/advanced-kernel-programming.html); [NVIDIA: prefill vs decode and roofline](https://developer.nvidia.com/blog/co-designing-ai-model-attention-for-fast-interactive-long-context-inference).
+
+### vLLM: automatic prefix caching (APC) is a **hash-block** mechanism
+
+The vLLM design does not store \`"system prompt" -> cached\` as a human-language string. It indexes reusable **completed KV blocks** by a hash derived from (a) the **previous block's hash**, (b) token IDs **inside the current block**, plus (c) relevant extra hashes (LoRA IDs, multimodal input hashes, **cache salt** for isolation, etc.). Block-chain ancestry matters: the same \`B C D\` appearing later after a *different* prefix does not yield the same reusable KV state.
+
+- A first request pre-fills a 50,000-token prefix, creating the necessary K/V and making full, eligible blocks reusable. The next compatible request can retrieve the same cached block IDs and **increase their reference counts**, avoiding duplicate prefill and often duplicate physical KV storage for that shared prefix. Keep this qualified: partial blocks, simultaneous in-flight duplicate computation, block eviction and hybrid state alignment can prevent perfectly one-copy accounting.
+- When requests diverge, only the **longest matching initial prefix** can be reused. Different user/project instructions, dates, tool definitions, chat templates, model adapters, image hashes or salts can shorten or prevent hits. A matching text chunk *later* in the prompt after the first mismatch does **not** qualify for ordinary prefix reuse.
+- Full blocks are cached; capacity is finite; unreferenced cached blocks may be evicted when the free block queue needs space. Cached and **currently active** blocks are not all equally evictable. Same model server + correct configuration matters; **two independent replicas** do not automatically share KV just because both expose the same API endpoint. Remote KV-transfer/offloading is a separate feature.
+- **Hybrid models:** if a model uses full attention + Gated DeltaNet/Mamba/other recurrent state, matching token hashes isn't enough by itself—cache reuse may require appropriate recurrent state/checkpoints and compatible block boundaries. vLLM now documents \`--enable-mamba-shared-prefix-checkpoint\` for matching a shared prefix that ends inside a block, subject to implementation/model support. Don't depict arbitrary Mamba state as 50,000 ordinary K/V blocks.
+
+**Concrete agent harness test** (illustrative **50K**, **not** a verified current Claude Code prompt length):
+
+~~~text
+One vLLM model-serving instance:
+Agent A: [IDENTICAL SYSTEM+TOOLS 50K] + [project A prompt] + ...
+Agent B: [IDENTICAL SYSTEM+TOOLS 50K] + [project B prompt] + ...
+Agent C: [IDENTICAL SYSTEM+TOOLS 50K] + [project C prompt] + ...
+
+Cache: 50K-ish shared prefix K/V once (eligible full blocks; retained)
+Branches: separate K/V for distinct project histories and generated replies
+~~~
+
+**Critical practical nuance:** *three different harnesses* are likely to serialize different system instructions, tool schemas, metadata or chat templates. They can share only **whatever first token sequence actually matches**. Even three runs of the **same** harness can diverge early if a current date, repo path or session ID is injected near the beginning. Audit tokenized prompt order or actual cache-hit metrics, don't assert "all Claude Code system prompts are automatically a single cache entry." Example metrics: \`prefix_cache_hits\` and \`prefix_cache_queries\` where provided by the engine; measure cold versus warm TTFT and prefill-token counts. Privacy: in a multi-tenant environment review cache-salt isolation—cross-tenant cache sharing is not automatically appropriate.
+
+Sources: [vLLM hash-block design and refcount/free queue](https://docs.vllm.ai/en/latest/design/prefix_caching/); [vLLM automatic prefix-caching guide and hybrid Mamba alignment](https://docs.vllm.ai/en/stable/features/automatic_prefix_caching/).
+
+### SGLang: RadixAttention is a **radix tree over cached token prefixes**, not a new neural attention equation
+
+SGLang's [original RadixAttention implementation](https://www.lmsys.org/blog/2024-01-17-sglang/) keeps a **compressed prefix trie/radix tree**. Tree edges contain **variable-length sequences of token IDs**; nodes point at the corresponding cached KV locations. Prefixes shared by several conversations appear as a single **trunk**; after the first differing token, conversations branch. The system finds the longest reusable prefix, locks/reference-protects its necessary cache state, and caches the new suffix. Under pressure, unneeded **leaf** subtrees can be evicted with an LRU-like policy while retaining shared trunks.
+
+**Difference from vLLM:** vLLM tracks a hash table of fixed-size KV blocks chained by parent hashes. SGLang explicitly organizes variable-length token spans into a radix tree, making shared branches visible in the data structure. **Both achieve the same general optimization: reuse previously computed state for an exact compatible prefix.** A radix tree is an *index/eviction strategy*, not magic attention that changes \`softmax(QK^T)V\`, and it is not the same as a **speculative-decoding candidate tree** used to verify multiple possible future tokens.
+
+**Hybrid prefix caching (important for the Qwen/Flash-Next workload):** modern [SGLang Unified Radix Cache](https://www.sglang.io/blog/unified-radix-cache) keeps one *logical* radix tree with components whose actual reusable contents differ:
+
+- **Full attention:** the cached entire common prefix's KV pages are valid.
+- **Sliding-window attention:** only the window of historical KV immediately relevant to the continuation must be present.
+- **Mamba/DeltaNet/SSM state:** a saved recurrent-state **checkpoint valid at a precise prefix boundary** is needed; cannot reconstruct arbitrary intermediate state just because an unrelated full-attention KV block exists. Reuse may require copying state (copy-on-write) before divergence.
+- The unified tree manages **component-specific residency and eviction**; do not show all branches having equally reusable state for every layer.
+
+**Visual:** a shared root "SYSTEM + TOOLS" grows three branches. Switch index mode **vLLM hash blocks / SGLang radix tree** while keeping the prompts and underlying K/V data fixed. Then switch the model to hybrid and watch the full-attention path remain cached while a sliding window travels with the active frontier and Mamba checkpoint markers appear only at eligible positions.
+
+Sources: [LMSYS RadixAttention design](https://www.lmsys.org/blog/2024-01-17-sglang/), [SGLang's September 2026 Unified Radix Cache explanation](https://www.sglang.io/blog/unified-radix-cache), [code-level component behavior](https://github.com/sgl-project/sglang/blob/main/python/sglang/srt/mem_cache/unified_cache/components/README.md).
+
+### llama.cpp: supports prompt reuse, **not necessarily vLLM-style one physical shared prefix**
+
+The answer to "will all three agents' identical system prompt be counted once in llama.cpp?" is **not necessarily**. Current [llama-server arguments](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md) include:
+
+- \`--cache-prompt\` (request/server prompt prefix reuse; current docs default **enabled**).
+- \`--parallel N\` (parallel slots) and \`--kv-unified\` (one shared **KV memory buffer across sequences**, which is not by itself a promise that identical prefixes are de-duplicated).
+- \`--cache-ram N\` and \`--cache-idle-slots\` (RAM-backed saved prompt states across slot reuse; copying/restoring a cached state can occupy new storage).
+- \`--ctx-checkpoints\` (especially relevant for hybrid/recurrent models), optional slot persistence.
+- \`--cache-reuse N\` for qualified chunk reuse using KV shifting, not an all-purpose cross-slot prefix identity map.
+
+**What is established from current implementation:** llama-server tends to select a slot whose existing prompt has the largest initial common prefix and can skip evaluating that portion when it runs in a compatible slot. A RAM-backed cache can save/restore prompt state across slot turnover. However **three simultaneously active slots can still hold separate instances of the common prefix**, and cross-slot restore/copy has different memory and latency behavior from shared vLLM block references.
+
+A [October 16, 2026 discussion](https://github.com/ggml-org/llama.cpp/discussions/30664) specifically proposes **cross-slot attach / shared KV cells** and pinning common-prefix snapshots, motivated by agent harness tool/system prefixes. This is a **proposal/prototype**, not evidence that its opt-in flags are already present in current mainline. Version-check before using its results or recommending flags. Older llama.cpp guidance on \`--system-prompt-file\` is historical; verify against the installed CLI before using. For fairness, test not only whether the second request is fast but also **whether a simultaneous third request holds duplicate K/V**.
+
+**Safety/compatibility nuance:** RAM-cache, unified KV, hybrid recurrent checkpoints, and version-specific cache restores have had correctness/compatibility reports; avoid recommending experimental flags as a blanket production fix. Use [upstream README](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md), [current server source](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/server-context.cpp), and the [cross-slot proposal](https://github.com/ggml-org/llama.cpp/discussions/30664).
+
+### Engram: **the table is persistent; the selected rows are accessed for newly processed tokens**
+
+This corrects the tentative question "Are Engram weights read through once, at the beginning of the session?"
+
+- **No**, not in that sense. The **massive learned lookup table** is a *weight tensor*, typically loaded/memory-mapped or made accessible by the serving runtime at **model initialization** (possibly in **host RAM** or specialized **NVMe** storage). The table does **not** get fully scanned once per user conversation and then disappear.
+- Whenever the network **computes a new token position** at an Engram-augmented layer, its implementation derives **n-gram hashes from recent token IDs**, looks up the corresponding **small subset of learned table rows**, and merges those features into that layer's evolving hidden state via learned projections/gating. In DeepSeek-V4.1, the code handles needed lookback tokens across chunk boundaries. So Engram lookups happen during **prefill for uncached positions** *and* during **decode for new positions**, not only once at session start.
+- **But repeated lookup does not necessarily mean repeated physical NVMe reads.** If the table is resident in CPU RAM, the data is fetched from there; NVMe-backed implementations can use bounded staging buffers, OS page cache, prefetch and hot-row reuse. In DeepSeek-V4.1's reference serving, deterministic addressing allows **host-memory prefetch**. Pennyroyal has a specialized **NVMe PLE** path that accesses selected rows; no blanket claim it performs exactly one disk I/O per n-gram per token.
+- **Prefix-cache interaction:** when a whole input prefix is already processed and a serving engine reuses the relevant KV/**hybrid checkpoint state**, the model need not run those positions again, so their Engram lookups/computation are also skipped. However, for the newly appended suffix, Engram still does new lookups.
+- DeepSeek's [official Engram research implementation](https://github.com/deepseek-ai/Engram) calls this **static N-gram memory with deterministic addressing**. The [V4.1 Engram inference code](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash/blob/main/inference/engram.py) and [vLLM port](https://docs.vllm.ai/en/latest/api/vllm/models/deepseek_v41/common/engram/) explicitly compute token-ID lookbacks for **every position/chunk**. It is **not** like caching the 50K-token system prompt *once at initialization*.
+- Model-family distinction: DeepSeek-V4.1 has the large **Engram** tables; the speaker's Qwen3.8-Flash-Next/Pennyroyal deployment uses its own **PLE n-gram table** on NVMe. They are related ideas but **different concrete models and serving paths**; neither should be confused with MoE CPU expert offloading or speculative-decoding prompt n-gram matching.
+
+**Two-stage animation:** (i) **once at startup**, draw the table arriving into its persistent storage tier; (ii) **for each processed position**, highlight a handful of hashed rows, bring a small vector into the target Engram layer, fuse with the residual stream. During a second request with a shared cached prefix, dim the previously computed prefix and animate new lookups *only* for the suffix. Add switches **DeepSeek V4.1 host-memory** vs **Pennyroyal NVMe PLE**; show the data path, not speculative benchmark numbers. Optional close-up: two n-grams mapping to same toy hash bucket, illustrating why hashing does not implement exact memorized phrase equality.
+
+### Four interactive visualization candidates for the implementation agent
+
+**Scene P — the true lifecycle of one token and its keys/values**
+
+- Input token label with ID; contextual hidden-state vector; per-layer Q projection, K projection and V projection matrices. Save K and V in an expanding per-layer, per-KV-head array indexed by token position, while the current query attends to the cached past.
+- Color-code token **identity**, hidden-state **representation**, stored **K**, stored **V**, and **Q**, with explicit tensor labels. Add slider for attention layer, position, sequence length, KV heads, and KV dtype.
+- Correctness: a K/V pair is **not a raw token ID**; two copies of the same token can have different K/V. Keep positional encodings architecture-specific and explain selective/hybrid attention separately.
+
+**Scene Q — disable the KV cache and watch repeated work**
+
+- Initial four tokens and a three-token generated suffix. Two synchronized paths. Left reexecutes entire increasing prefix; right prefills once, then runs **only the new token** through the model and accesses cached K/V. Separate meters for **processed token positions** and **historical KV attention reads**. Show quadratic/cubic *polynomial* growth under a correctly described cost model, never "exponential."
+- Optional roofline inset: prefill has many token vectors feeding Tensor Cores, batch-one decode has little arithmetic per weight read.
+
+**Scene R — three agent harnesses, one shared prefix (vLLM vs SGLang vs llama.cpp)**
+
+- Build three token-identical prompts for the first 50K **illustrative** tokens and different subsequent project histories. In **vLLM** mode show fixed full KV blocks with their parent hashes/refcounts; three requests can refer to the same blocks. In **SGLang** mode show a **compressed radix tree trunk** branching into three different suffixes; eviction removes unused leaves before the useful trunk. In **llama.cpp** mode show **slots** with local retained prompts and optional RAM cache restore; do **not** assume one physical shared prefix across all concurrent slots.
+- Toggle an injected date/tool schema difference at token 500: all three modes stop **ordinary initial-prefix reuse** at divergence. In hybrid mode show that Mamba/DeltaNet state requires checkpoints at compatible boundaries. Count eligible cached positions, actual prefills skipped, number of physical stored KV blocks, and separate per-agent suffixes. Keep \`50K\` illustrative; never assert a fixed Claude Code system prompt size.
+- Important: this is a **data structure / cache-sharing tree**, not an EAGLE speculative-token verification tree.
+
+**Scene S — Engram each token, not each session**
+
+- Render startup event only once: persistent giant learned table loaded/accessible in **CPU DRAM** or mapped **NVMe**. Token n-gram hash windows move with the currently processed position. Selected row addresses light up and are staged/fused into a particular model layer.
+- Use play modes: **new prompt prefill** (many token positions hashed), **decode** (new position hashed each iteration), **cache-hit prefix** (no replay of cached past rows; only suffix tokens processed), **cold table lookup** (host/SSD latency), **hot lookup** (host/page cache). Distinguish physical storage access from logical lookup computations.
+- The slide must label **Model weights (static)**, **Lookup-row fetch (per processed position)**, **KV cache (dynamic)**, **Prefix reuse (between requests)**. Differentiate DeepSeek Engram and Qwen PLE profiles.
+
+### Presenter-understanding checklist (internal research aid, not speaker notes)
+
+Before trying to teach a scene, be able to answer: **(1)** Which values are learned weights versus derived per-request activations? **(2)** Which parts of the diagram are repeated for every new token, and which are preserved from old positions? **(3)** When the GPU is "slow," is it short of VRAM, memory bandwidth, arithmetic occupancy, a compatible kernel, or an affordable cached prefix? **(4)** Do two identical initial prompts have physically shared KV or did the engine merely save/restore/copied a cache snapshot? **(5)** Are we describing full attention, a hybrid Mamba/DeltaNet layer, or sparse n-gram lookup?
+
+Research uncertainty to preserve: actual VRAM bytes/KV per model layer, exact CUDA/Tensor Core kernel mapping in the user's selected versions, per-engine prefix-cache behavior on hybrid Qwen3.8/Flash-Next, and the real prefix length and tokenization of Claude Code/pi/Hermes agents. Validate with real prompts/logs rather than invented examples.
+
+
 ## Slides (the deck)
 
 The deck is a Vite + React + TypeScript app in `src/`, built with **pnpm**. Visual direction comes from the Claude Design handoff in [`design/handoff/`](design/handoff/README.md): Jersey 15, sage monochrome, live three.js scenes with a pixel post-process.
