@@ -1,6 +1,7 @@
 import type { Slide } from './deck/types';
 import { splatLab } from './slides/splat-lab';
 import { maybe } from './slides/talk';
+import { sceneLab } from './slides/scene-lab';
 
 // The deck, in order. Everything marked `example: true` is placeholder content to exercise the
 // pipeline and the four slide types — not the final talk. Copy that is not marked example comes
@@ -185,6 +186,16 @@ export const slides: Slide[] = [
   },
   // Retired from the route by the viz audit (attention weights ≠ KV memory); replaced by `kvledger`.
   // Kept reachable at the end of the appendix as #/attn.
+  {
+    id: 'scene-lab',
+    type: 'section',
+    header: [TALK, 'Appendix'],
+    number: 'SL',
+    title: 'Scene lab',
+    framing: 'Brainstorm visualizations from the research notes — candidates, not the plan. Each one names the README brief it came from.',
+    example: true,
+  },
+  ...sceneLab,
   {
     id: 'splat-lab',
     type: 'section',

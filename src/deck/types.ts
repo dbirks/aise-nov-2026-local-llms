@@ -3,7 +3,11 @@
 
 export type SceneKind = 'moe' | 'spec' | 'offload' | 'sample' | 'attn' | 'flow'
   // builders in src/scenes/builders/<kind>.js
-  | 'kvcache' | 'scheduler' | 'kvledger' | 'prefill';
+  | 'kvcache' | 'scheduler' | 'kvledger' | 'prefill'
+  // scene lab (brainstorm scenes, src/scenes/builders/<kind>.js)
+  | 'roofline' | 'drafter-vram' | 'engram' | 'memtiers' | 'ssd-access' | 'prefix-share' | 'nokv'
+  | 'exposure' | 'drafters' | 'quant' | 'dense-moe-ngram' | 'wsl-memory' | 'release-bundle'
+  | 'agent-eviction' | 'decode-pass';
 
 export type Tones = '4' | '6' | '8' | '16' | '32' | 'smooth';
 
