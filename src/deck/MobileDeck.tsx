@@ -14,6 +14,27 @@ function indexFromHash(slides: Slide[]): number {
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
+/** Usable area: the visual viewport minus the notch / home-indicator safe areas (needs viewport-fit=cover). */
+function measureFit() {
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;visibility:hidden;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
+  document.body.appendChild(probe);
+  const cs = getComputedStyle(probe);
+  const px = (v: string) => parseFloat(v) || 0;
+  const insetX = px(cs.paddingLeft) + px(cs.paddingRight), insetY = px(cs.paddingTop) + px(cs.paddingBottom);
+  probe.remove();
+  const vw = (window.visualViewport?.width ?? window.innerWidth) - insetX;
+  const vh = (window.visualViewport?.height ?? window.innerHeight) - insetY;
+  return { scale: Math.min(vw / W, vh / H), portrait: vh > vw };
+}
+
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalone = () => window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches
+  || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+/** Element fullscreen works on Android Chrome/Firefox and iPad Safari, not on iPhone Safari. */
+const canFullscreen = () => !!document.documentElement.requestFullscreen && document.fullscreenEnabled;
+const TIP_KEY = 'mb-a2hs-tip-dismissed';
+
 /**
  * Touch deck: a vertical snap-scrolling feed, one slide per screen. The 1920×1080 stage is
  * scaled to fit; only the current page and its neighbours mount live WebGL scenes (the rest
@@ -22,27 +43,51 @@ const pad2 = (n: number) => String(n).padStart(2, '0');
  */
 export function MobileDeck({ slides, pixelOpts }: { slides: Slide[]; pixelOpts: PixelOpts }) {
   const [current, setCurrent] = useState(() => indexFromHash(slides));
-  const [fit, setFit] = useState(() => ({
-    scale: Math.min(window.innerWidth / W, window.innerHeight / H),
-    portrait: window.innerHeight > window.innerWidth,
-  }));
+  const [fit, setFit] = useState(measureFit);
+  const [tip, setTip] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
   const pageRefs = useRef<(HTMLElement | null)[]>([]);
 
   // Fit the 16:9 slide box to the viewport.
   useEffect(() => {
-    const measure = () => setFit({
-      scale: Math.min(window.innerWidth / W, window.innerHeight / H),
-      portrait: window.innerHeight > window.innerWidth,
-    });
+    // orientationchange fires before the new size settles on iOS, so re-measure a beat later too.
+    const measure = () => { setFit(measureFit()); setTimeout(() => setFit(measureFit()), 350); };
     measure();
     window.addEventListener('resize', measure);
     window.addEventListener('orientationchange', measure);
+    window.visualViewport?.addEventListener('resize', measure);
     return () => {
       window.removeEventListener('resize', measure);
       window.removeEventListener('orientationchange', measure);
+      window.visualViewport?.removeEventListener('resize', measure);
     };
   }, []);
+
+  // Landscape → full screen where the browser allows it. Browsers require a user gesture, so the
+  // first tap after rotating enters fullscreen (Android Chrome, iPad Safari). iPhone Safari has no
+  // element fullscreen at all: show a one-time "Add to Home Screen" tip instead.
+  useEffect(() => {
+    if (fit.portrait || isStandalone()) { setTip(false); return; }
+    if (canFullscreen()) {
+      const go = () => {
+        if (!document.fullscreenElement && window.innerWidth > window.innerHeight) {
+          document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => { /* denied */ });
+        }
+      };
+      window.addEventListener('touchend', go, { once: true });
+      return () => window.removeEventListener('touchend', go);
+    }
+    if (isIOS) {
+      let dismissed = false;
+      try { dismissed = localStorage.getItem(TIP_KEY) === '1'; } catch { /* storage blocked */ }
+      setTip(!dismissed);
+    }
+  }, [fit.portrait]);
+
+  const dismissTip = () => {
+    setTip(false);
+    try { localStorage.setItem(TIP_KEY, '1'); } catch { /* storage blocked */ }
+  };
 
   // Start on the slide named in the hash, before the observer reports its first position.
   useLayoutEffect(() => {
@@ -115,6 +160,11 @@ export function MobileDeck({ slides, pixelOpts }: { slides: Slide[]; pixelOpts: 
           )}
         </section>
       ))}
+      {tip && (
+        <button className="mb-tip" onClick={dismissTip}>
+          For true full screen: Share → Add to Home Screen, then open it from the icon. ×
+        </button>
+      )}
       <div className="mb-progress" aria-hidden>
         {slides.map((s, i) => <i key={s.id} data-current={i === current} />)}
       </div>
