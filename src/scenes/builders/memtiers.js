@@ -23,7 +23,7 @@ import { THREE, lam, M, Q, P, S, ease, emitter } from './_kit.js';
 const XL = -3.05;                       // all shelves share this left edge (capacity baseline)
 const SLAB_H = 0.58, SLAB_D = 1.12;
 const ROW = { vram: 1.62, ram: 0.0, nvme: -1.62 };
-const CAP = { vram: 96, ram: 128, nvme: 2000 };   // 96 GB from the table row; RAM/NVMe = illustrative profile
+const CAP = { vram: 96, ram: 46, nvme: 1000 };   // RTX PRO 6000 96 GB; ~46 GB host RAM (README, pennyroyal node); 1 TB = the P510 review unit
 const RX = 1.72, RAIL_D = 0.9;          // shared host rail (staging / PCIe)
 const RAIL_TOP = 1.15;                  // its link runs straight into the block, clear of the VRAM pipe
 const GX0 = 2.06, GX1 = 2.90;           // GPU cores block (its near face catches the incoming runs)
@@ -33,13 +33,13 @@ const thick = g => 0.05 + 0.0115 * Math.sqrt(g);          // pipe thickness: √
 const speed = g => 0.30 * Math.cbrt(g);                   // packet speed: ∛(measured GB/s)
 
 const RAMS = {
-  ddr3: { g: 20.5, tag: '20.5 gb/s', line: 'sys ram 128 gb · ddr3-1600 2ch read 20.5 gb/s (moc-memory-stream-v4)' },
-  ddr4: { g: 41.5, tag: '41.5 gb/s', line: 'sys ram 128 gb · ddr4-3200 2ch read 41.5 gb/s (moc-memory-stream-v4)' },
-  ddr5: { g: 78.0, tag: '78.0 gb/s', line: 'sys ram 128 gb · ddr5-5600 2ch read 78.0 gb/s (moc-memory-stream-v4)' },
+  ddr3: { g: 20.5, tag: '20.5 gb/s', line: 'ram ~46 gb · ddr3-1600 2ch read 20.5 gb/s (moc-memory-stream-v4)' },
+  ddr4: { g: 41.5, tag: '41.5 gb/s', line: 'ram ~46 gb · ddr4-3200 2ch read 41.5 gb/s (moc-memory-stream-v4)' },
+  ddr5: { g: 78.0, tag: '78.0 gb/s', line: 'ram ~46 gb · ddr5-5600 2ch read 78.0 gb/s (moc-memory-stream-v4)' },
 };
 const NVME = {
-  seq: { g: 10.97, tag: '10.97 gb/s', line: 'nvme 2 tb · p510 seq1m q8t1 10.97 gb/s (crystaldiskmark)' },
-  rnd: { g: 0.0748, tag: '0.0748 gb/s', line: 'nvme 2 tb · p510 rnd4k q1t1 0.0748 gb/s (crystaldiskmark)' },
+  seq: { g: 10.97, tag: '10.97 gb/s', line: 'nvme 1 tb p510 review · seq1m q8t1 10.97 gb/s (crystaldiskmark)' },
+  rnd: { g: 0.0748, tag: '0.0748 gb/s', line: 'nvme 1 tb p510 review · rnd4k q1t1 0.0748 gb/s (crystaldiskmark)' },
 };
 const VRAM_LINE = 'vram 96 gb · gpu copy 1466.75 gb/s (boston ltd, on-device copy)';
 
@@ -149,8 +149,8 @@ export default function build(scene, emit) {
   // ── labels: tier names, the measured rate on each pipe, block names ────
   const add = (t, x, y, h = 0.32) => { const l = mkLabel(t, h); l.sprite.position.set(x, y, 0); scene.add(l.sprite); return l; };
   add('vram 96 gb', XL + 1.0, ROW.vram + 0.78);
-  add('sys ram 128 gb', XL + 1.35, ROW.ram + 0.78);
-  add('nvme 2 tb', XL + 0.9, ROW.nvme + 0.78);
+  add('ram ~46 gb', XL + 1.35, ROW.ram + 0.78);
+  add('nvme 1 tb', XL + 0.9, ROW.nvme + 0.78);
   add('gpu cores', (GX0 + GX1) / 2, 2.42);
   const lblBw = {
     vram: add('1466.75 gb/s', 0.3, ROW.vram - thick(1466.75) / 2 - 0.4, 0.28),
