@@ -216,6 +216,70 @@ Additional contrast: stock vLLM's [Flash-Next recipe](https://github.com/vllm-pr
 This is **one possible content map**, not the plan. Keep the config-file-as-map approach available as a navigation pattern inside a topic. The current code and example slides remain aesthetic/interaction prototypes.
 
 
+## Research addendum — companion draft releases and MoE terminology (2026-11-16)
+
+This is **living talk content**, not a slide specification or speaker notes. The existing deck remains experimental. This pass specifically distinguishes producer-supplied companion drafters, native MTP, offloaded experts, and Pennyroyal's PLE table.
+
+### Model releases increasingly include a matched drafter
+
+Concrete upstream examples (not hypothetical third-party pairings):
+
+| Main model | Released companion | How it drafts | Availability / caveat |
+| --- | --- | --- | --- |
+| [Meta Muse Glimmer **30B**](https://huggingface.co/meta-models/Muse-Glimmer-30B) | [\`meta-models/Muse-Glimmer-30B-assistant\`](https://huggingface.co/meta-models/Muse-Glimmer-30B-assistant) | DFlash block drafter; an official small companion model; official GGUF release also has quantized drafts | Confirmed in [Meta's announcement](https://research.meta.ai/blog/introducing-muse-glimmer-open-agentic-model) and [official model collection](https://huggingface.co/collections/meta-models/muse-glimmer). **Not** a \`Muse Glimmer S\` or \`XS\` release; the verified name is **Muse Glimmer 30B**. |
+| [Poolside Laguna **S 2.1**](https://huggingface.co/poolside/Laguna-S-2.1) | [\`poolside/Laguna-S-2.1-DFlash\`](https://huggingface.co/poolside/Laguna-S-2.1-DFlash) | DFlash companion, 6 sliding-attention layers and 16-position draft blocks | The official base card documents integration with vLLM and a Poolside llama.cpp fork; specific runtime support varies by version. |
+| [Poolside Laguna **XS 2.1**](https://huggingface.co/poolside/Laguna-XS-2.1) | [\`poolside/Laguna-XS-2.1-DFlash\`](https://huggingface.co/poolside/Laguna-XS-2.1-DFlash) | DFlash companion, 5-layer drafter, up to 15 proposals per block | The official drafter card warns that some upstream serving integrations had not landed at the time of publication. Check before using a live demo. |
+
+**Narrative:** model releases are evolving from "just the large model weights" toward a **serving bundle**: target weights, tokenizer/chat template, possibly native MTP heads, and an optional *separately downloaded, specifically trained* drafter. The drafter often is not physically embedded in the target checkpoint, and it is not universally compatible with every quantization, loader or runtime. It still consumes memory and compute. A companion drafter is a way for the creator to optimize inference for the **actual target distribution** instead of expecting everyone to find/train a generic draft model.
+
+**Quick show-and-tell visual:** a model-release box expands into separately labeled artifacts (target, tokenizer/template, native MTP if present, optional companion DFlash draft). The loader connects the matched target + drafter to one verifier. Switch official examples; show one **real** vLLM / llama.cpp invocation. Do not imply third-party drafting is impossible, that all models provide drafts, or that DFlash and MTP are the same thing.
+
+A concrete vLLM example from Laguna's official card (verify current engine/model revision before using):
+
+~~~bash
+vllm serve poolside/Laguna-S-2.1 \
+  --speculative-config '{"model":"poolside/Laguna-S-2.1-DFlash","num_speculative_tokens":7,"method":"dflash"}'
+~~~
+
+Muse's official Hugging Face write-up demonstrates llama.cpp with a DFlash setting on the GGUF release; the appropriate draft artifact can be discovered or passed as a separate model. These are two actual, vendor-originated examples for a 10–20-second "you can just use one" demonstration, not a promise of speedup for every workload.
+
+### What **Qwen3.6-35B-A3B** actually means
+
+Verified against the [official Qwen3.6-35B-A3B model card](https://huggingface.co/Qwen/Qwen3.6-35B-A3B):
+
+- **35B** is the approximate **total number of learned parameters** in the model—not GPU VRAM consumed, not the number of floating-point operations, and not the number of tokens it can read.
+- **A3B** means approximately **3 billion parameters activated per token** in the declared accounting for inference. It does **not** mean the other 32B weights disappear, are stored at zero cost, or can all be ignored when loading.
+- This particular model has **256 routed experts in each MoE layer, with 8 selected per token plus one shared expert**. The router makes token-/layer-dependent expert choices; *another token or request can choose other experts*.
+- It has **40 layers** with a repeating **Gated DeltaNet + MoE** and **Gated Attention + MoE** pattern. The simplified MoE cartoon should not suggest every layer is a classic dense self-attention transformer.
+- **3B active is not a separate 3B checkpoint**; shared attention/embeddings/other always-on calculations and selected experts make up active work. Actual latency also reflects memory traffic, kernels, context and batching. Compare dense 27B to 35B-A3B without claiming the MoE is inherently better, faster, or cheaper in *all* contexts.
+
+**Suggested visual:** a 35B wall of weight blocks; on each token, highlight a much smaller active subset (**~3B parameter-equivalent**), leaving the other stored expert blocks dimmed but still represented. The next token lights up different experts. A split display keeps *total storage* (35B), *active per-token compute* (~3B), and *actual memory transferred/available bandwidth* separate. A side-by-side dense FFN scene makes the distinction legible in seconds. Do not use "3B VRAM" for A3B.
+
+### Important offloading distinction: MoE experts versus PLE n-gram tables
+
+For a **Qwen3.6-35B-A3B-type MoE model**, the expert-bank weights can be **kept in CPU RAM** to reduce VRAM use when the engine supports it. For example, current [llama.cpp server docs](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md) expose:
+
+~~~bash
+# Conceptual flags; version and model format compatibility still need checking.
+--cpu-moe                  # keep MoE expert weights on CPU
+--n-cpu-moe N              # keep MoE weights of the first N layers on CPU
+--moe-cache-mib N          # optional GPU hot cache of CPU-hosted experts
+-ot '...=CPU'              # tensor-placement overrides (exact tensor patterns vary)
+~~~
+
+Other choices include partial layer offload via \`-ngl\` and engine-specific host-memory weight offload. **Offloading changes where weights reside, not the network's routing mathematics.** A routed expert selected at runtime must either be computed where its weights are resident or have its weights transferred/staged. This can make a previously unfit model run, but CPU RAM bandwidth, PCIe traffic and caching policy can become the bottleneck. Do not promise GPU-like throughput when keeping a large expert bank in host RAM.
+
+**This is different from Pennyroyal's NVMe PLE setup:** that installation stores a **learned n-gram embedding lookup table** on an NVMe SSD and selectively fetches rows, not MoE MLP matrices. The PLE table is neither a KV cache nor a DFlash drafter. Show separate memory paths in the visual:
+
+- MoE: token hidden state → learned expert router → selected MLP expert weights (GPU and/or CPU, potentially cached).
+- PLE: token IDs / local n-gram hash → selected lookup rows (NVMe/host staging) → embedding features in the network.
+- KV/prefix cache: stored *request-dependent inference states*, not model weights.
+
+Potential 15-second sequence: choose "dense," "MoE fully GPU-resident," "MoE expert CPU offload," then "n-gram lookup on NVMe." Keep all arrows labeled with **bytes read, compute location, and purpose** rather than making "offloading" one generic concept.
+
+**Open technical checks:** which Qwen3.6 MoE quant+llama.cpp build supports \`--moe-cache-mib\` correctly; workload-specific PCIe/CPU speed tradeoffs; whether a particular released companion drafter runs unmodified in the version of vLLM/llama.cpp available at presentation time.
+
+
 ## Slides (the deck)
 
 The deck is a Vite + React + TypeScript app in `src/`, built with **pnpm**. Visual direction comes from the Claude Design handoff in [`design/handoff/`](design/handoff/README.md): Jersey 15, sage monochrome, live three.js scenes with a pixel post-process.
