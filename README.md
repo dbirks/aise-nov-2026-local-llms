@@ -466,6 +466,123 @@ These are *new candidate scenes*, not a request to implement them immediately. B
 - If using the *first DeepSeek Engram model* claim, prefer "first confirmed released DeepSeek model incorporating Engram: V4.1-Flash" rather than "first model in the world," and distinguish January research prototype from September product.
 
 
+## Measured memory bandwidth and the capacity–bandwidth–cache trade-off (2026-11-16)
+
+> **Speaker's developing thesis:** "Local inference isn't just about choosing the biggest model your card can hold. You're trading *capacity*, *bandwidth*, *precision*, *latency*, *concurrency*, and *cache retention*. You can place some data in CPU RAM or on an NVMe SSD, but that changes what the GPU waits on. And every GiB you give weights or a drafter is a GiB not available for KV cache and active requests." **This is a working conceptual narrative, not a final talk order.** Current slide content is still experimental and should not be treated as speaker-approved.
+
+### Fundamental distinction: size versus speed versus access pattern
+
+- **Capacity (GB/GiB):** what can remain resident in a memory tier. The model's *total* weights, including any selected/all MoE experts or n-gram tables, plus separate drafter weights, KV cache, hybrid recurrent state, activations, CUDA graphs, workspaces and reservations must fit somewhere.
+- **Sustained bandwidth (GB/s):** how fast large streams of data are transferred under an actual benchmark. This is more informative for low-batch, weight-streaming decode than a raw compute TFLOPS figure, but not a perfect predictor.
+- **Latency, IOPS and transfer granularity:** essential for SSD-backed n-gram/Engram row lookups, sparse expert fetching, or any small/random access. Sequential bandwidth marketing figures can be spectacular while single-thread tiny random reads are slow.
+- **Where work executes:** CPU and GPU memory are not interchangeable; accessing an offloaded tensor may mean CPU computation and/or a transfer over PCIe or a host staging buffer. An NVMe disk is a cold backing store, not an extension of directly-addressable, HBM-speed VRAM.
+- **Useful throughput:** a bigger aggregate model, or even higher raw decode tok/s, isn't automatically a better coding-agent server if parallel active conversations evict each other's prefixes.
+
+### Actual observed bandwidth numbers, with benchmark labels (not hardware marketing peaks)
+
+The observations below come from **different** real-world benchmarks and platforms. They are useful **order-of-magnitude** examples, **not** a controlled side-by-side hardware shootout. Prefix exact units: GB/s = decimal 10^9 bytes/s; some sources report MB/s and some MiB/s. Different test methods (CPU read vs GPU streaming vs SSD Q-depth) also access data differently.
+
+| Tier / specimen | Measured transfer rate | What was actually measured | Source / qualification |
+| --- | ---: | --- | --- |
+| DDR3-1600, 2 channels | **20.5 GB/s read** | Public \`moc-memory-stream-v4\` test, 20,527 MB/s. Small sample; platform-specific; not STREAM Triad. | [Malekal DDR3 dual channel](https://stresstest.malekal.com/en/benchmark/ram/ddr3-1600-mt-s-2-canaux) |
+| DDR4-3200, 2 channels | **41.5 GB/s read** | Same versioned \`moc-memory-stream-v4\` read test, 41,474 MB/s, 129 result group in sampled page. | [Malekal DDR4 dual channel](https://stresstest.malekal.com/en/benchmark/ram/ddr4-3200-mt-s-2-canaux) |
+| DDR5-5600, 2 channels | **78.0 GB/s read** | Same versioned \`moc-memory-stream-v4\` read test, 78,005 MB/s, 6 result group. Versioned observations; not universal for every DDR5 platform. | [Malekal DDR5 dual channel](https://stresstest.malekal.com/en/benchmark/ram/ddr5-5600-mt-s-2-canaux) |
+| RTX 5090 D, GDDR7 | **1,340.8 GB/s GPU memory streaming** | Independent author's CUDA GPU streaming throughput; same post reports **1,528.8 GB/s device-to-device memcpy** (different workload). GPU labeled "RTX 5090 D" specifically, not a demonstrated 5090 eGPU. | [gpu-bench reproducible project](https://github.com/binbinsh/gpu-bench) |
+| RTX PRO 6000 Blackwell, GDDR7 96 GB | **1,466.75 GB/s GPU copy** | Boston Limited's measured on-device copy bandwidth on RTX PRO 6000; **not** GPU↔CPU transfer. | [Boston RTX PRO 6000 test](https://boston.co.uk/content-hub/nvidia-rtx-pro-6000-blackwell-workstation-edition/) |
+| Crucial P510 NVMe SSD, 1 TB, PCIe 5 x4 | **10.97 GB/s sequential read Q8T1**, **6.15 GB/s sequential read Q1T1**, **0.0748 GB/s random 4 KiB Q1T1** | A hardware review's CrystalDiskMark results: SEQ1M Q8T1 = 10,973.9 MB/s, Q1T1 = 6,154.5 MB/s; RND4K Q1T1 = 74.75 MB/s. **These are radically different access patterns.** This is a 1 TB review unit, not a measurement of the speaker's particular SSD. | [ssd-tester.com P510 review](https://ssd-tester.com/crucial_p510_1tb.html) |
+
+**Do not put AMD R9700's 640 GB/s into a "measured" column yet**: [AMD's R9700 specification](https://www.amd.com/en/products/graphics/workstations/radeon-ai-pro/ai-9000-series/amd-radeon-ai-pro-r9700.html) is **peak rated GPU bandwidth**, not a measured bandwidth microbenchmark. It has 32 GB GDDR6; [Puget Systems' local-LLM tests](https://www.pugetsystems.com/labs/articles/amd-radeon-ai-pro-r9700-dual-gpu-ai-inference-performance/) report actual **tok/s by model and concurrency**, which is more relevant to runtime comparisons than pretending the 640 GB/s spec is a directly measured value. Likewise NVIDIA [RTX 5090](https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5090/) and [RTX PRO 6000](https://www.nvidia.com/en-us/products/workstations/professional-desktop-gpus/rtx-pro-6000/) advertise **1,792 GB/s** *peak*, not observed serving bandwidth. If including advertised peaks, use a separate clearly labeled column.
+
+**Important caveat about the CPU examples:** all three rows above have **two channels**, but they are from differing CPUs, memory controllers and timing regimes. Many servers have **8 or 12 memory channels** and reach hundreds of GB/s. For a measured example, [Boston's EPYC 9575F tests](https://boston.co.uk/content-hub/amd-epyc-and-intel-xeon-memory-bandwidth/) report **332.3 GB/s STREAM Triad** with eight DDR5-6400 channels and **500.1 GB/s Triad-like** with twelve. Do not claim "DDR5 is always 78 GB/s"; channel count and CPU design are decisive. Also **integrated/unified memory** can have another bandwidth/compute relationship. Separately, an **eGPU link** may become the bottleneck on host↔GPU transfers even if local VRAM is fast.
+
+**Data integrity / publication note:** the Malekal table uses its reported \`moc-memory-stream-v4\` observed read figures; this is not a controlled STREAM Triad report nor the model's own LLM effective bandwidth. The NVIDIA rows are **different GPU microbenchmarks**, SSD values vary by I/O queue depth, and high-cache-hit workloads may not draw all their traffic from the highest-latency tier. Do not render precise interpolated tok/s as if measured. For a rigorous apples-to-apples slide, run a standardized **CPU STREAM**, **GPU STREAM / bandwidthTest**, **fio with 4K random + 1M sequential at recorded QD**, and the **same llama.cpp/vLLM model workload** on the chosen machines, capturing hardware, power, clocks and engine versions.
+
+### A physically accurate mental model
+
+A typical hierarchy, with data placement choices:
+
+\`\`\`text
+                        GPU compute units / local caches
+                               ↕ on-device reads
+         VRAM / GDDR7    [target hot weights] [active KV + prefix] [workspace] [drafter]
+              ↑    ↑
+              │    └── PCIe / interconnect staging (host ↔ device, if needed)
+              │
+       CPU DRAM DDR4/DDR5    [offloaded model weights / selected MoE experts]
+              ↑
+       NVMe SSD              [cold checkpoint / Pennyroyal PLE n-gram weight table]
+\`\`\`
+
+**Resident dense model, low-batch decode:** active weight matrices must be used repeatedly at each generated token, so the GPU streams/accesses their weight tiles out of its VRAM. A 4-bit quant reduces footprint/traffic but may need different compute kernels; "smaller model" and "faster model" are not synonyms. Prefill is often more compute-intensive because a loaded weight tile is reused over many token positions; decode with batch 1 is often more bandwidth-sensitive.
+
+**MoE with CPU-offloaded experts:** the GPU may keep dense attention/router/shared components resident and only selected experts execute; an engine may execute CPU experts locally or transfer selected weights into GPU staging. The advantage is more accessible **capacity**, at the expense of a **slower memory tier and possible PCIe traffic**. Different engines, kernels, caching policies and batch mixes can make or break performance. Don't imply you can access CPU DRAM at GDDR7's 1.3–1.5 TB/s.
+
+**N-gram PLE on NVMe (speaker's Pennyroyal):** a huge fixed table on disk is not scanned in full for each token. Hashes select **specific rows**, copied to bounded staging buffers, while the main model layers remain GPU resident. Thus the SSD's **random read/latency/queue-depth/prefetch behavior** matters more than dividing 47.68 GiB by an advertised sequential speed. Keep this **independent** of MoE expert offloading and of the *request-dependent* prefix cache.
+
+**Long-context multi-agent server:** even if the model just fits VRAM, you can have poor usability with minimal KV headroom. With many agents repeatedly sending long shared prefixes, cache pages are evicted and costly prefills recur. A stronger question than "Can I load it?" is **"How much of the active context working set can I retain while serving all my agents?"**
+
+### A configuration choice as a constrained optimization problem
+
+Use a runtime memory budget, not just a model-card size:
+
+\`VRAM_cap >= resident_target_weights + optional_drafter_weights + active_KV + hybrid_state + temporary_activations + CUDA_graphs + other_runtime_overhead + safety_margin\`.
+
+The accounting may include allocator fragmentation, reserve policies, aliases/sharing, offload staging, and backend-specific buffers. **KV reservation is not always a fixed length × active sequences slab**: paged/block allocators grow and evict, while recurrent/hybrid state needs different accounting. An advertised context length does **not** guarantee every concurrent request can maintain that many cached tokens.
+
+Trade-off controls and possible outcomes:
+
+- **Weight quantization:** lower target weight bytes ↔ possible accuracy, kernel/dequantization and feature tradeoffs; reclaimed VRAM can become KV/prefix headroom.
+- **KV-cache dtype (e.g. BF16, FP8, NVFP4 on supported kernels):** lower cache bytes per token ↔ accuracy/long-context numerical behavior; maybe preserve larger working set and avoid eviction/preemption.
+- **Drafter/speculation:** allocate more draft weights/state and compute ↔ potentially fewer expensive target sequential passes, but reduce cache room.
+- **MoE expert CPU offload:** expand model parameter capacity in host RAM ↔ bandwidth and synchronization costs, extra CPU load.
+- **PLE/Engram NVMe placement:** large learned lookup table can live on disk ↔ random read latency / prefetch/cache locality penalties; doesn't mean full dense weights can be streamed from SSD at good tok/s.
+- **Batch size / concurrency:** better weight reuse and aggregate throughput ↔ more active KV/state, queues and possibly worse per-agent latency.
+- **Prefix caching:** higher cache retention ↔ more VRAM/DRAM consumed by long-lived context; matching prefixes avoids repeated prefill.
+- **Different runtime/kernels:** trade support breadth, acceleration and compatibility; a specialized runtime can outperform broadly on a particular model/GPU, but cannot be assumed without testing.
+
+#### Real example from the speaker's home-k8s issue history
+
+The [Qwen3.8 vLLM operating document](https://github.com/dbirks/home-k8s/blob/main/.agents/skills/qwen38-27b-vllm/SKILL.md) reports changing **FP8 KV → NVFP4 KV**, increasing *available cache pool* from about **741,032 to 1,225,765 tokens (~1.65x)** for that setup, helping with prefix eviction under concurrent agent load. This is precisely the sort of **counterintuitive trade** to demonstrate: the best use of Blackwell 4-bit support may be freeing **KV-cache capacity** rather than just compressing weights or maximizing tokens/sec at batch 1. Those figures are one documented setup, not a general benchmark or a guarantee of identical output quality.
+
+The [Pennyroyal manifest](https://github.com/dbirks/home-k8s/blob/main/apps/pennyroyal-flashnext.yaml) and [issue #135](https://github.com/dbirks/home-k8s/issues/135) show **NVMe-backed PLE** was chosen because host RAM couldn't hold a roughly **47.68 GiB PLE table plus the default HiCache allocation**. They also describe a separate **trade-off between GPU KV tokens, host HiCache, hybrid Mamba state slots, and effective request concurrency**. Again, this is not MoE expert offload.
+
+### Scene M — measured memory tiers, scale and latency
+
+**Goal:** in 15 seconds show why GPU-resident weights are fast, CPU RAM has much more potentially affordable capacity but lower bandwidth, and NVMe only works well if the architecture performs **sparse, prefetchable reads** rather than a full weight scan each token.
+
+- Geometry: three tiered translucent memory shelves, from on-device **GDDR7** to **DDR3/DDR4/DDR5** to **NVMe**. Height = **capacity** for a selected hardware configuration (must be real/sourced or explicitly synthetic); pipe width = **measured test-specific bandwidth**; packet spacing / delays represent **access-pattern dependent latency**, not a common physical clock.
+- Default table: exact observed values above, with a **benchmark type** label that never disappears when the chart is zoomed.
+- Controls: **CPU generation** DDR3/4/5, **memory channels** and GPU/card dropdown, **memory access** (stream/read vs random small-row lookup), **model execution** dense scanning vs MoE selected experts vs PLE hashed sparse rows.
+- Guardrails: don't multiply dual-channel observed results to infer a 12-channel system, don't convert disk random IOPS to "GPU tok/s", don't represent 2× separate GPUs as pooled VRAM with one shared bus.
+- Camera storyboard: one memory pipe → zoom out to three tiers → toggle DDR3/4/5 → reveal GPU bandwidth is a different order of magnitude → switch to small-random-lookup NVMe to show why SSD bandwidth marketing is not the relevant metric.
+
+### Scene N — "fit the model" versus "keep the agents fast"
+
+**Goal:** teach why you cannot consume VRAM with model weights until almost nothing remains for KV and expect healthy concurrent serving.
+
+- One selected hardware profile with a fixed **VRAM budget**. Partition into target weights, drafter weights, active KV, reusable prefix KV, hybrid state and runtime overhead. Display exact accounting where engine logs exist, otherwise **illustrative**.
+- Simulate/animate 1, 4, 8, 24 agents alternating long tool-using conversations. Prefix reuse makes requests fast; when the cache working set exceeds capacity, evictions drive **time to first token** up on later turns even if decode remains fast.
+- Let the presenter toggle model choice, weight precision, KV precision, speculative decoding, number of active sequences and host offload. The end state is not the "largest model", it is a **Pareto frontier** across model capability, concurrency, p95 TTFT, throughput and memory reserve.
+- A split test compares a **fast single-user mode with drafter + smaller cache** against a **no-drafter mode with larger cache**. Both are valid, depending on the actual workload; never hardcode a winner.
+- Two 15-second views: A) *model fits, cache doesn't* and B) *smaller model/quant or KV dtype frees just enough context to prevent churn*. The presenter's personal reported KV issue is an ideal source of real numbers.
+
+### Scene O — SSD lookup access pattern: why M.2 offloading isn't interchangeable with RAM
+
+- Show one SSD tier with two paths: (1) sequential streaming of a large weight tensor and (2) small random indexed PLE row fetches with prefetch. These have **very different measured bandwidth/latency**.
+- Use sourced P510 test data: ~10.97 GB/s for deep-queue sequential reading vs **~74.75 MB/s** for single-queue 4K random reads on the same review unit. Do not claim the actual Pennyroyal PLE workload yields these exact values: it may batch, coalesce, use OS caching and prefetch.
+- Controls: page size, queue depth, cache hit ratio, prefetch lead time and number of n-gram lookups. Show a stylized request queue and PCIe transfer; no pretend direct SSD↔SM hardware bypass.
+- Compare "wrong use" (try to reread *all* dense weights from NVMe every decode step) with "appropriate use" (sparse, predictable token-ID-indexed embedding rows). Mark performance as a **scenario**, not a measured benchmark.
+- End shot: target hot weights + KV in GDDR7, optional experts in CPU DRAM, massive PLE learned table on NVMe with only a trickle of selected row reads.
+
+### Source quality and next data to capture
+
+1. The **speaker's own** \`STREAM\` CPU RAM test on DDR4/DDR5 machines, \`gpu-stream\` / CUDA \`bandwidthTest\` on RTX 5090 and RTX PRO 6000, and \`fio\` on the actual P510 (record direct I/O, block size, queue depth, random/sequential, read/write).
+2. For engine comparisons, keep **fixed the model revision, quantization, context length, prompt distribution, concurrency, sampling and hardware**, or state explicitly when exact equivalence isn't possible.
+3. A paired GPU VRAM allocation from engine logs **with and without speculation**, and memory available to KV. If no paired run, use a conceptual resized slab with simulated values and no speedup claims.
+4. A matched **cold versus warm prefix** multi-turn agent benchmark, measuring TTFT, preemptions/evictions and per-request plus aggregate throughput.
+5. AMD R9700: retrieve independent **measured GPU memory throughput** and pair it with the coworker's actual Radiance results before displaying a comparable bandwidth row. Use the **640 GB/s rated** figure only if prominently flagged manufacturer peak, not as a measured result.
+
+
 ## Slides (the deck)
 
 The deck is a Vite + React + TypeScript app in `src/`, built with **pnpm**. Visual direction comes from the Claude Design handoff in [`design/handoff/`](design/handoff/README.md): Jersey 15, sage monochrome, live three.js scenes with a pixel post-process.
