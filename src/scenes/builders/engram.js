@@ -157,9 +157,28 @@ export default function build(scene, emit) {
   let seed = 11;
   const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
 
+  // The run is stateful (which table rows each position armed, the fused residual, counters), so
+  // 'back' rewinds one processed position by restoring the state recorded before that beat.
+  const snaps = [];
+  const snap = () => ({
+    cursor, filled, done, look, collisions, shared, sharedPos, timer, hold,
+    byPos: new Map([...byPos].map(([k, v]) => [k, v.slice()])),
+    armed: armed.slice(), floorv: floorv.slice(),
+  });
+  function rewind() {
+    const s = snaps.pop();
+    if (!s) return;
+    cursor = s.cursor; filled = s.filled; done = s.done; look = s.look; collisions = s.collisions;
+    shared = s.shared; sharedPos = s.sharedPos; timer = s.timer; hold = s.hold;
+    byPos.clear();
+    for (const [k, v] of s.byPos) byPos.set(k, v.slice());
+    armed.set(s.armed); floorv.set(s.floorv);
+  }
+
   function newRun() {
     byPos.clear(); shared = -1; sharedPos = -1; done = 0; look = 0; collisions = 0;
     timer = 0.35; hold = 0;
+    snaps.length = 0;
     if (mode === 'decode') { cached = 0; filled = 6; cursor = 6; }
     else if (mode === 'cache') { cached = 8; filled = T; cursor = 8; }
     else { cached = 0; filled = T; cursor = 1; }
@@ -214,11 +233,14 @@ export default function build(scene, emit) {
   function beat() {
     if (hold > 0) return;
     if (cursor > T - 1) { hold = 1.8; return; }
+    snaps.push(snap());                                  // 'back' restores the state from before this beat
+    if (snaps.length > 64) snaps.shift();
     process(cursor);
     cursor++;
     if (mode === 'decode' && filled < T) filled++;
     if (cursor > T - 1) hold = 1.8;
   }
+
 
   return {
     view: { target: [-0.15, 0.15, 0], radius: 40, theta: 0.36, phi: 1.12, size: 2.95 },
@@ -363,6 +385,7 @@ export default function build(scene, emit) {
         else if (hold > 0) { hold = 0; newRun(); }
         else beat();
       }
+      else if (name === 'back') { playing = false; startup = 1; rewind(); }
       else if (name === 'back') { playing = false; newRun(); } // no undo history: back restarts the run
       else if (name === 'mode') { mode = PERIOD[String(arg)] ? String(arg) : 'prefill'; newRun(); }
       else if (name === 'ngram') { n = Number(arg) === 2 ? 2 : 3; newRun(); }
