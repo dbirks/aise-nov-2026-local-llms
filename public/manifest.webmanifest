@@ -1,6 +1,6 @@
 {
   "name": "Configuring Local LLMs",
-  "short_name": "It Runs",
+  "short_name": "Local LLMs",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",
