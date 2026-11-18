@@ -75,6 +75,144 @@ Research anchors to preserve in the implementation: [Hugging Face quantization c
 4. **Technical depth:** how many optional deep dives can fit in 30 minutes? Keep navigation nonlinear and audience-facing text sparse.
 
 
+## CURRENT WORKING OUTLINE — a guided tour of how I learned local inference (2026-11-17)
+
+**This is now the highest-priority outline to refine through the speaker's narrated walkthrough.** It is not a final script, slide order, or requirement to cover every bullet. The speaker prefers the **loosely autobiographical learning journey** over a broad "trade-offs taxonomy," but the trade-off lens remains useful. The title *Beyond "It Runs"* is **not** locked. All existing demo pages are visual-style experiments, not approved presentation content. **No speaker notes will be used**; keep the detailed content inventory in the README and later make the displayed scenes self-explanatory. **Goal: 30 minutes, 201 level, software engineer meetup, already familiar with Ollama/LM Studio.**
+
+### Overall narrative and delivery rules
+
+- Open with a concrete lived problem, not a terminology index: "I heard local models were finally useful enough, bought a GPU, then spent months figuring out how to make them fit, keep context, handle more agents and go faster."
+- Every section follows: **(a) the problem I was trying to solve → (b) the actual thing happening inside the machine → (c) the name engineers use for it → (d) the setting / test / practical consequence**. Prefer ordinary but technically precise words before terms.
+- **Visual intent:** an animated object must *correspond to a real tensor, data dependency, cache allocation, model weight, route or transfer*. Not decorative 3D and not an unrelated apple/store analogy. A stylized 3D projection is fine if explicitly labeled as projection/toy model. The speaker can pause or rotate the explanation and move on in ~15–30 sec.
+- Build a **library of scenes** and choose a subset for the 30-minute live talk. Some optional deep dives can be bypassed based on time and audience.
+- **Admit uncertainty:** there are still CUDA, Tensor Core kernel, Mac/MLX and real benchmarking details the speaker is learning. That is an honest part of the presentation, not a flaw to conceal.
+- Optional audience interaction: "Who runs local models with Ollama or LM Studio?" at the opening, and "Anyone using Apple Silicon/MLX/oMLX? What serving settings have worked for you?" near the end. **Don't turn the presentation into a Mac performance tutorial; the speaker has only tried a Mac model about once.**
+
+### 0. Why I started — "These models were becoming useful" (about 2 minutes)
+
+**Story beats / subpoints**
+
+- Heard other people say local models were finally good enough to be useful for real tasks, not just chat demonstrations. Bought a GPU and tried running them myself.
+- Initial Ollama/LM Studio experiments were accessible, but the breakthrough was **Qwen3.6-27B**: subjectively reliable choices in coding-agent workflows, tool calls, web research, Kubernetes troubleshooting, and little procedural habits such as remembering to commit before pushing. Later Qwen3.8-27B was another personal workhorse. Verify exact timeline/model identities before publication.
+- Why local? **Because it's fun**; personal control and independence; an additional option if hosted subscription economics, quotas or availability change; practical experience running your own tools. The speaker also **uses and appreciates hosted frontier models**; don't frame it as anti-cloud or make unsupported claims of inevitable AI-market collapse.
+- The talk is a **collection of things learned in roughly the order the problems arose**, not an exhaustive benchmark or a pure flag walkthrough.
+
+**Possible visuals:** 10-second real agent workflow excerpt (sanitized) or simple "one request to model" diagram. Save elaborate architecture for later. **Speaker follow-up:** what was the first workflow that made the local model feel dependable?
+
+### 1. How much GPU do I need, and which model can I actually fit? (about 5 minutes)
+
+**Story beats / subpoints**
+
+- Real purchase decision: 24 GB felt too restrictive for the models/context the speaker wanted, so they deliberately paid for **32 GB** rather than gamble on barely fitting. Personal judgment; not a universal minimum for local LLMs.
+- Considered **NVIDIA DGX Spark**, which offers **128 GB unified LPDDR5x** at **273 GB/s manufacturer-rated bandwidth**, versus the **RTX 5090's 32 GB GDDR7** and **1,792 GB/s manufacturer-rated on-device memory bandwidth**. **These are advertised peaks, not measured LLM tokens/sec**; the 5090's rated bandwidth is ~6.56× the Spark's on-device shared-memory figure, but actual model throughput depends on kernel compute, precision, model support, batch size and, especially for eGPU configurations, the host↔GPU link. **Spark can hold models that do not fit within 32 GB**, and its larger capacity is a genuine advantage for other workloads.
+  - Official sources: [DGX Spark spec](https://docs.nvidia.com/dgx/dgx-spark/hardware.html), [RTX 5090 spec](https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5090/).
+- The **decisive integration requirement**: run the model directly from a **Windows work laptop under WSL2**, not on a separate standalone box reached over a network. An **external RTX 5090 (eGPU)** can attach to that laptop as its inference accelerator; transfers across the eGPU connection can have much lower bandwidth than local GDDR7. The same preference applies despite DGX Spark's larger available memory. The speaker also had WSL VM memory/file-cache crashes; see [home-k8s issue #48](https://github.com/dbirks/home-k8s/issues/48) and specific loading flag anecdotes elsewhere in this README; don't infer the exact root cause from one observation.
+- **VRAM is a budget, not an on/off switch:** weights **plus** KV cache **plus** runtime workspace **plus** optional drafter and hybrid recurrent state. A model that barely loads with no usable context is not a satisfying fit.
+- **Dense versus MoE:** for a dense model, most FFN weights participate in each token; for **Qwen3.6-35B-A3B**, ~35B total learned parameters and ~3B activated per token, *not* 3B bytes of VRAM. Router selects experts; active-compute and total-storage are separate. Quantization changes the storage size; CPU offloading selected experts is another capacity/transfer trade-off.
+- First experiments in **llama.cpp**: model choice, quantization, GPU layer residency, \`--cpu-moe\` and tensor/CPU offload where supported. Reddit/community launch configs inspired useful flags; show **one real example**, then explain the mechanism, rather than telling attendees to copy a random preset.
+- **Don't introduce NVMe PLE here** as ordinary expert CPU offload. Save DeepSeek Engram/Qwen PLE for the later developments section.
+
+**Candidate visual:** physically partitioned 32 GB VRAM slab; slide 24 → 32 → 128 GB; a *separate* bandwidth pipe for each tier and a separate CPU/eGPU interconnect. Add dense/MoE router, and expert weights partly moved to CPU RAM. No invented fps/tok/s from bandwidth alone.
+
+**Speaker follow-up:** which specific first model/quant/context did the 24-vs-32 GB decision target, and which community llama.cpp flag was the first win?
+
+### 2. I got the weights to fit; now how do I fit a useful conversation? (about 5 minutes)
+
+**Story beats / subpoints**
+
+- First distinguish **static learned weights**, **dynamic attention KV cache**, **recurrent/hybrid state**, and **temporary buffers**.
+- **Weight quantization in plain words:** take large learned numerical weight matrices and represent selected numbers with fewer possible values using scales/grouping, keeping most of the computation useful while shrinking storage. **This is not chopping off decimal places, not directly blurring a "king" embedding, and not the same as reducing model parameter count.**
+- Start with a real matrix \`W\` and input vector \`h\`; show how a different quantized matrix \`W_q\` changes the output \`W_q h\`. Only *then* use a clearly labeled 3D projection to show an output direction shift. Initial token embeddings and context-dependent residual/hidden-state vectors are distinct. If using "king/queen" analogies, state their limitations or drop them in favor of coding-token examples.
+- **INT4 / W4A16** (weights compressed, activations 16-bit for eligible operations), **NVFP4 / W4A4** on Blackwell supported kernels, and other precision choices. Quantization uses group scaling, selective layers and often calibration. **AutoRound** tunes quantization/rounding against representative calibration inputs; mixed precision selectively preserves sensitive projections. **Calibration is not the same thing as held-out evaluation**. Use the speaker's Qwen3.8 AutoRound exclusions/quality tests as genuine examples.
+- What the **KV cache** really contains: intermediate **key/value vectors at attention layers for processed token positions**, *not raw token IDs*. Without it, earlier token positions' work is repeatedly recomputed; this is **polynomial, not exponential** in a conventional full-attention model. Decode updates K/V incrementally. For hybrid models (DeltaNet/Mamba), state/checkpoint accounting differs.
+- **KV precision**: BF16/FP16 → FP8 → NVFP4 where implemented and quality-tested. Trading numerical fidelity and kernel support for cache capacity. The speaker experienced how cache quantization freed space for more history; don't universally claim a more aggressive KV dtype is always better.
+- **CPU/offload nuance**: it is possible to hold some weights in CPU RAM, or mix GPU+host placement, but reads/compute/staging can bottleneck on DDR bandwidth and the interconnect. Aim for GPU-resident *hot* computation where feasible. Revisit longer-context/parallel trade-offs in next section.
+
+**Candidate visual:** the precise quantization matrix→vector animation, followed by per-layer K/V slots growing token-by-token and shrinking per token as cache dtype changes. Each new **attention** calculation reads prior values; never pretend old context costs zero.
+
+**Speaker follow-up:** which real model's W4A16/NVFP4 or KV precision change first made an otherwise impossible context workable?
+
+### 3. It works for me. Can I run more than one coding agent? (about 6 minutes)
+
+**Story beats / subpoints**
+
+- From **one working request** to several concurrent conversations and perhaps multiple *replicas*. Distinguish requests/sequences sharing one model instance versus independently loaded copies and independent hosts. These have very different weight-memory costs.
+- **Prefill vs decode:** prefill processes many uncached prompt positions in parallel, frequently using Tensor Cores well; single-stream decode runs the next position and reads active weight matrices/cache, often memory-bandwidth-sensitive. Explain SMs/Tensor Cores and **GEMM vs GEMV** in ordinary language. Decode at large batch can become compute-bound. Avoid falsely claiming each new token reloads model checkpoint from SSD.
+- **Memory bandwidth comparison:** GPU GDDR7 versus CPU DDR4/DDR5, and NVMe I/O. Show *measured* observations with precise benchmark labels separately from *rated* Spark/5090 peaks; different cards/cores/kernels and eGPU link can break naïve bandwidth→tok/s predictions.
+- **Prefix caching:** same **initial token sequence**, same model/compatible settings, reuse previously computed K/V and/or hybrid state from an earlier request. The practical agent case is long repeated system/tools prefixes. 50K tokens is a **hypothetical size**, not a verified Claude Code system prompt. Injecting project instructions, date, tools or other dynamic data early can destroy matching.
+- **vLLM** reuses fixed-size hash-indexed parent-chained KV blocks (can share physical blocks among compatible active requests). **SGLang RadixAttention** maintains a radix tree whose shared trunk branches into different request histories. It is an **indexing/prefix reuse** strategy, not a different attention equation. **llama.cpp** supports slot/prompt reuse but does not necessarily physically deduplicate simultaneous prefix K/V across independent slots.
+- **Reality check:** prefix retention and cache eviction can dominate TTFT when agents take turns with long histories. Speaker's home-k8s Qwen3.8 notes document KV capacity increasing from ~741K to ~1.23M tokens under one configuration by switching FP8→NVFP4, easing cache churn; numbers depend on setup. Show what got faster *without* pretending higher KV capacity guarantees model answer quality.
+- **Inference engines in practice:** at one stage llama.cpp felt lighter/better-fitting; later vLLM became compelling for concurrency/scheduling, with frequent back-and-forth. Show key high-leverage flags for llama.cpp, vLLM and optionally SGLang, but don't spend the talk reading YAML.
+
+**Candidate visual:** the same three agent histories represented as **vLLM block-hash references / SGLang radix tree / llama.cpp slots**; split the tree when a token changes near the beginning. Then show the GPU context working set overflowing and prefix-cache eviction forcing renewed prefill.
+
+**Speaker follow-up:** in which concrete experiment did concurrency push you toward vLLM, and were you running parallel sequences or separately loaded replicas?
+
+### 4. Can I reduce the number of expensive target-model passes? (about 7 minutes)
+
+**Story beats / subpoints**
+
+- Why decode performance can bottleneck on repeatedly moving active weights through GPU memory, especially with one or a few streams.
+- **Speculative decoding, plain first:** a cheaper mechanism guesses several next tokens; the main model checks the proposals in parallel; only valid tokens are kept. Proper stochastic verification can preserve the target's sampling distribution. Acceptance length ≠ guaranteed speedup.
+- Distinguish a **drafter model**, **native MTP heads**, and **prompt n-gram heuristic drafting**; no single mechanism represents all speculation.
+- **MTP**, **EAGLE-3**, **DFlash**, **DSpark**, **DFlash2**; add a few newer proposals only if their actual draft dependencies can be communicated in a short animation. Show one target/verifier and switch drafting mechanisms while keeping the same token-position axis.
+- **Memory trade-off:** a separate drafter adds weight/state/workspace costs and can **reduce memory available for KV/prefix caching and concurrency**. Show a before/after VRAM allocation rather than a magical tokens/sec multiplier.
+- **Firsthand DSpark training**: \`speculators\` pipeline, target-model rollouts/hidden-state extraction, SWE-bench/DeepSWE language diversity, warm-start versus from-scratch, rotary mismatch, teacher-forced versus free-running evaluation and why more agentic training data alone did not improve the tested from-scratch run. Don't imply AutoRound trained DSpark—AutoRound belongs in the weight-quantization story.
+- **Model creators shipping matched draft models**: Meta Muse Glimmer 30B, Poolside Laguna S and XS 2.1 examples. Show 1 genuine runtime configuration and the extra drafter VRAM allocation.
+- Optional quick lesson: when speculation can make *real agent throughput worse*, especially under high batch or reduced context retention.
+
+**Candidate visual:** animated target-only time axis vs drafter→parallel verifier, then a selector for MTP/DFlash/DSpark/DFlash2, plus an optional panel of your real train/serve acceptance results. Keep green "accepted" count and end-to-end throughput distinct.
+
+**Speaker follow-up:** what is the most memorable failed DSpark experiment (and what did it teach you), and which drafter has actually helped most on your own workload?
+
+### 5. Things I found later that are unusually interesting (about 4 minutes)
+
+**Story beats / subpoints**
+
+- **Small/specialized inference engines:** a runtime or kernel highly optimized for a *particular model and particular GPU* can sometimes outperform a broad framework on that exact workload. Examples worth verifying and benchmarking: **NInfer on RTX 5090**, **Radiance on AMD Radeon AI PRO R9700** (coworker report), **Pennyroyal** (speaker's SGLang-derived experience), and other special-purpose runtimes. These are not all CUDA-based: the AMD path is different. Do not claim every specialized runtime was "entirely AI-written," that all are benchmark winners, or that a new engine's performance generalizes to all cards/models.
+- **The big recent architecture change:** learned **n-gram lookup memory**, introduced in DeepSeek's **Engram** research and adopted in DeepSeek V4.1-Flash, with a separate related **PLE** approach in Qwen3.8-Flash-Next. Hash recent token IDs into learned table rows; only selected rows are accessed *for newly processed token positions*, not just once when a session starts. This is not ordinary MoE expert offload, KV cache or prompt n-gram speculative decoding.
+- **Speaker's concrete example:** Pennyroyal kept ~47.68 GiB of Qwen PLE learned lookup weights on **NVMe**, with bounded staging/cache, because host DRAM could not hold its standard full in-RAM PLE and HiCache budget. It does not stream all model weights from NVMe per generated token. Explain where selected rows travel; distinguish from CPU-offloaded MoE experts.
+- **Mac humility and crowd connection:** speaker ran a local model on Mac approximately once, so should not pretend to give a first-hand Apple Silicon performance guide. Bandwidth can suggest *some* characteristics, but GPU/ANE cores, kernels, quantization and unified-memory behavior matter. **oMLX** is a real MLX-native serving project at [omlx.ai](https://omlx.ai/) and [github.com/jundot/omlx](https://github.com/jundot/omlx); also mention Apple **MLX**, MLX-LM, llama.cpp and LM Studio if relevant. Briefly invite practitioners in the room to share their experience.
+
+**Candidate visual:** "what's emerging" two-panel montage: GPU-specific inference kernel path and per-token n-gram hash→selected learned table rows→host/NVMe staging. Could be an optional branch if time is tight.
+
+**Speaker follow-up:** which specialized runtime delivered the most surprising real improvement, and what measurement supports it?
+
+### 6. Optional 60-second endcap: sharing local inference without a VPN (about 1 minute)
+
+**Story beats / subpoints**
+
+- LLM Collective: independently hosted model endpoints contributed by people on their own machines, exposed through a gateway. Not cross-host model tensor parallelism or pooled GPU VRAM.
+- Speaker's practical motivation: don't require everyone to join a VPN or expose inbound ports into their home network. A contributor can make an **outbound-initiated authenticated connection** to a service/gateway, then receive appropriately routed requests through that connection **if this is how the deployed design works**. Verify actual Collective topology, trust boundaries and protocol before drawing exact networking arrows.
+- This is a small example of "what you can do once a local model is useful as a service," not necessarily a flagship topic.
+
+**Candidate visual:** 3 separate home-machine boxes, each running its own whole model, outbound arrows to a gateway, client/API requests routed back to an available appropriate model. No combined VRAM pool.
+
+### Presentation allocation: a first-pass budget, not a promise
+
+| Section | Approx. time |
+| --- | ---: |
+| 0. Why I started | 2 min |
+| 1. What fits? Hardware, dense/MoE, first llama.cpp choices | 5 min |
+| 2. More useful context: weights, quantization, KV | 5 min |
+| 3. Multiple agents: cores/bandwidth, prefix reuse, scheduling | 6 min |
+| 4. Go faster: speculative decoding and the DSpark story | 7 min |
+| 5. Interesting recent developments and specialized engines | 4 min |
+| 6. Optional LLM Collective endcap | 1 min |
+| **Total** | **30 min** |
+
+These timings are intentionally aggressive, because this is a 201-level fast visual tour, not six deep technical lectures. A talk that genuinely teaches all individual topics in depth would take much longer. A **core 20-minute route plus skippable branches** is a good fallback.
+
+### Technical tone and facts to preserve while editing
+
+- **DGX Spark 273 GB/s and RTX 5090 1,792 GB/s are vendor peak bandwidth specifications**, not measured real-model decode rates. Their ratio is not a speedup claim; the eGPU host link and software kernels complicate performance.
+- Don't conflate "I chose 32 GB because 24 was too tight *for my goals*" with "all local inference needs 32 GB."
+- Don't equate total MoE weight footprint with active-compute count, embeddings with contextual hidden states, or matrix-weight quantization with quantizing an abstract semantic cloud.
+- Prefix caching works on identical **initial tokenized** content, not just thematically similar instructions; multiple independent model instances don't magically share cached KV.
+- "No speaker notes" means **the README is the research inventory**, and visuals/short audience-facing captions carry the talk live.
+- Never present illustrative speed numbers, memory bandwidth marketing figures, or uncertain AI-written engine origin stories as firsthand measurements.
+
+
 ## Earlier five-stage topical skeleton (provisional, not the preferred narrative)
 
 1. **Choose** — recent local model capabilities; dense vs. MoE; architecture and quality tradeoffs.
