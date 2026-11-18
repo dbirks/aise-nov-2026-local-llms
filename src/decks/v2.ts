@@ -1,9 +1,9 @@
-import type { Slide } from './deck/types';
-import { v } from './slides/v2';
-import { CHAPTERS, TALK } from './slides/v2/_ch';
+import type { Slide } from '../deck/types';
+import { v } from '../slides/v2';
+import { CHAPTERS, TALK } from '../slides/v2/_ch';
 
-// Deck v2 (docs/deck-v2-plan.md), started 2026-11-18. One file per outline id in src/slides/v2/.
-// The previous build is archived in src/decks/route-v1.ts (open with ?deck=v1).
+// Deck v2 (docs/deck-v2-plan.md), archived 2026-11-18. Served at /2/. The current deck is src/decks/v3.ts.
+// v1 lives in src/decks/route-v1.ts (served at /1/).
 
 /** Section divider for chapter n; framing = the line that carries us into it. */
 const section = (n: number, framing: string): Slide => ({

@@ -6,7 +6,7 @@
   "packageManager": "pnpm@12.14.0",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/subpaths.mjs",
     "preview": "vite preview",
     "typecheck": "tsc -b"
   },
