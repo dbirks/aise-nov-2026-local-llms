@@ -14,7 +14,7 @@ export const slide: Slide = {
   ],
   notes: meta({
     id: 'C03', claim: 'Calibrated rounding, held-out evaluation and selective precision make quantization quality an engineering choice',
-    evidence: ['MECHANISM', 'SYNTHETIC DEMO', 'MEASURED ON SPEAKER SYSTEM'],
+    evidence: ['MECHANISM', 'SYNTHETIC DEMO'],
     simulated: 'Four independent 4×8 layers; seeded calibration and held-out vectors; signed straight-through rounding optimization; weight-only footprint excludes scales. The BF16 layer is represented by its original weights.',
     not: 'AutoRound is QAT; calibration error is a coding benchmark; AutoRound trained the DSpark drafter',
     open: 'The cited speaker recipe lists recurrence-control in_proj_a / in_proj_b, visual.*, mtp and lm_head as BF16 exceptions; recipe evidence is not a performance measurement.',

@@ -229,9 +229,9 @@ export default function build(scene, emit) {
     action(name, arg) {
       if (name === 'play') { playing = !playing; bt = 0; }
       else if (name === 'step') { stepReq = true; }
-      else if (name === 'batch') { playing = false; batch = [1, 8, 64].includes(Number(arg)) ? Number(arg) : 1; }
-      else if (name === 'prompt') { playing = false; prompt = Number(arg) === 2048 ? 2048 : 128; }
-      else if (name === 'weights') { playing = false; weights = String(arg) === '4-bit' ? '4-bit' : 'fp16'; }
+      else if (name === 'batch') { const v = [1, 8, 64].includes(Number(arg)) ? Number(arg) : 1; if (v !== batch) { playing = false; batch = v; } }
+      else if (name === 'prompt') { const v = Number(arg) === 2048 ? 2048 : 128; if (v !== prompt) { playing = false; prompt = v; } }
+      else if (name === 'weights') { const v = String(arg) === '4-bit' ? '4-bit' : 'fp16'; if (v !== weights) { playing = false; weights = v; } }
     },
   };
 }

@@ -13,6 +13,10 @@ export const slide: Slide = {
     title: "Four bits is not one format",
     body: "A 4-bit number can only take a few values, so blocks of weights share a stored scale. INT4 spaces its levels evenly, NVFP4 (E2M1) does not, and weights, activations and KV each get their own precision.",
   },
+  // weights dial labelled by weight format only: activation precision is its own dial (W4A16 vs W4A4 = both dials).
+  controls: (base[0] as Extract<Slide, { type: 'scene' }>).controls?.map(c => c.kind === 'choice' && c.action === 'weights'
+    ? { ...c, options: [{ label: 'fp16', value: 'fp16' }, { label: 'int4', value: 'int4' }, { label: 'nvfp4', value: 'nvfp4' }] }
+    : c),
   notes: meta({
     id: "C02",
     claim: "code values and scale metadata differ between INT4 and NVFP4; weight/activation/KV precisions are independent",

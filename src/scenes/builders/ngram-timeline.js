@@ -30,7 +30,7 @@ export default function build(scene, emit) {
   box(0, -1.3, 0, 6.8, 0.07, 0.12, 0x222222);
   const markers = xs.map(x => box(x, -1.3, 0, 0.2, 0.25, 0.22));
   const dates = ['jan 2026', 'apr 2026', 'aug 2026', 'sep 2026'];
-  const names = ['engram paper', 'deepseek v4', 'qwen3.8 flash next', 'deepseek v4.1'];
+  const names = ['engram paper', 'deepseek v4 flash', 'qwen3.8 flash next', 'deepseek v4.1 flash'];
   xs.forEach((x, i) => { label(dates[i], x, -1.75); label(names[i], x, -2.15, 0, 0.27); });
   // Paper: the lookup path is schematic, not a claim of identical implementations.
   ['hash', 'rows', 'gate'].forEach((s, i) => {

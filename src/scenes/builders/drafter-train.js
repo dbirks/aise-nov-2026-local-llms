@@ -27,7 +27,7 @@ export default function build(scene, emit) {
   box(xs[3], -0.7, 0.7, 0.52, 0.5);
   const ring = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.045, 6, 20, Math.PI * 1.5), mid); ring.position.set(xs[3], -0.7, 0.4); scene.add(ring);
   box(xs[4], -0.7, 0.8, 0.45, 0.5, mid);
-  label('direct in #72', xs[4], -1.35, 0.23);
+  label('convert (#72)', xs[4], -1.35, 0.23);
   box(xs[5] - 0.3, -0.7, 0.52, 0.55, 0.5); box(xs[5] + 0.35, -0.7, 0.38, 0.38, 0.5, mid);
   label('target + draft', xs[5], -1.35, 0.23);
   const packet = box(xs[0], -0.9, 0.15, 0.15, 0.18);
@@ -44,7 +44,7 @@ export default function build(scene, emit) {
     const mark = box(0.8 + i * 0.6, 1.43, 0.48, 0.045, 0.08, dark, 0.2); mark.rotation.z = 0.65; marks.push(mark);
   }
   const issues = ['50', '51', '59', '60', '69', '72', '80'];
-  const topics = ['proposal', 'RoPE mismatch', 'pipeline review', 'training recipe', 'data sources', 'serve evaluation', 'agentic test'];
+  const topics = ['first plan', 'nvfp4 plan', 'pipeline + bugs', 'corrected recipe', 'data corpus', 'serve + convert', 'agentic test'];
   const ticks = [], details = [];
   box(0, -2.25, 9.3, 0.06, 0.1, dark);
   issues.forEach((n, i) => {

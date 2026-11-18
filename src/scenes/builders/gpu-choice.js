@@ -243,7 +243,7 @@ export default function build(scene, emit) {
   const lblSparkBw = makeLabel('273 GB/s rated', 0.31);
   lblSparkBw.position.set(X_SPARK, PIPE_Y - TH_SPARK / 2 - 0.42, 0);
 
-  const lblPipeNote = makeLabel('pipe width ∝ rated GB/s', 0.31);
+  const lblPipeNote = makeLabel('pipe width ∝ √ rated GB/s', 0.31);
   lblPipeNote.position.set(0.35, PIPE_Y - 1.04, 0);
 
   const lblNoFit = makeLabel("doesn't fit", 0.32);

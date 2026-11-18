@@ -16,8 +16,8 @@ export const slide: Slide = {
   notes: meta({
     id: "B02",
     claim: "size, bandwidth and latency are separate constraints per memory tier",
-    evidence: ["MECHANISM", "MANUFACTURER SPEC"],
-    simulated: "shelf widths are log-scale illustrative; pipe rates carry the README benchmark labels",
+    evidence: ["MECHANISM", "SYNTHETIC DEMO"],
+    simulated: "shelf widths are log-scale illustrative; pipe rates are published third-party benchmarks (README table, labels kept), not the speaker’s machines",
     not: "an eGPU link does not throttle every VRAM read; peak specs and benchmark rates are not on one comparable scale; no tok/s",
     open: "speaker STREAM/CUDA/fio measurements to replace published reference numbers",
     reuses: "memtiers (scene lab)",

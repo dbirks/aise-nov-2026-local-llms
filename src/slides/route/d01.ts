@@ -11,7 +11,7 @@ export const slide: Slide = {
   chip: chip(3),
   caption: {
     title: "Reading the prompt vs replying",
-    body: "Reading your prompt pushes many positions through each weight read at once; that is prefill. Replying moves one new token per read, which is decode: same weights, very different work per byte.",
+    body: "Reading your prompt pushes many positions through each weight read at once; that is prefill. Replying, one token at a time, moves one new position per read, which is decode: same weights, very different work per byte.",
   },
   notes: meta({
     id: "D01",

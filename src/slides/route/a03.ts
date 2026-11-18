@@ -10,7 +10,7 @@ export const slide: Slide = {
   chip: chip(7),
   caption: {
     title: 'No best setup, only your workload',
-    body: 'Every choice in this talk bought something by spending something else. Pick the workload first, then see which limits you actually hit. What are you running?',
+    body: 'Every choice in this talk bought something by spending something else. Pick your workload first and see which limits you hit: what are you running?',
   },
   controls: [{
     kind: 'choice', action: 'profile', label: 'workload', initial: 'coding',

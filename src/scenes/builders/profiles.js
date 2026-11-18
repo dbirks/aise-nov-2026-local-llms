@@ -34,7 +34,7 @@ const PROF = {
   },
   chat: {
     label: 'cheap chat', lv: [0, 1, 0, 0, 0, 0],
-    line: 'cheap chat leans on memory bandwidth · every limit low',
+    line: 'cheap chat leans on memory bandwidth · every other limit low',
   },
   long: {
     label: 'long context', lv: [1, 1, 2, 1, 0, 0],

@@ -33,7 +33,7 @@ export default function build(scene, emit) {
   label('check per model + version', 0, -0.7, 1.2, 0.3);
   ['llama.cpp', 'vLLM', 'SGLang'].forEach((name, i) => {
     const x = (i - 1) * 2.15;
-    mesh(i === 0 ? dark : mid, x, -1.15, 1.3, 1.8, 0.1, 0.5);
+    mesh(mid, x, -1.15, 1.3, 1.8, 0.1, 0.5);
     label(name, x, -1.42, 1.3, 0.31);
   });
   let scheme = 'fp16', fp4 = false, playing = true, time = 0, beat = 0;
@@ -58,7 +58,7 @@ export default function build(scene, emit) {
         for (const m of [c.body, c.rim, c.bar]) { m.scale.x += (width - m.scale.x) * ease(dt, 6); m.position.x = c.x - 1.75 + m.scale.x / 2; }
       });
       const suffix = fp4 ? 'nvfp4' : 'int4 g128';
-      out({ playing, readout: scheme === 'q4' ? `4-bit · gguf ~4.8 b/w · ${suffix} ${fp4 ? '4.5' : '~4.1'} b/w · same source tensor` : `${scheme === 'q8' ? '8-bit · gguf 8.5 · fp8 8' : 'fp16 · f16 16 · bf16 16'} b/w · nvfp4 ${fp4 ? 'on' : 'off'}` });
+      out({ playing, readout: scheme === 'q4' ? `4-bit · gguf ~4.8 bpw · ${suffix} ${fp4 ? '4.5' : '~4.1'} bpw · same source tensor` : `${scheme === 'q8' ? '8-bit · gguf 8.5 · fp8 8' : 'fp16 · f16 16 · bf16 16'} bpw · nvfp4 ${fp4 ? 'on' : 'off'}` });
     },
     action(name, arg) {
       if (name === 'play') playing = !playing;
