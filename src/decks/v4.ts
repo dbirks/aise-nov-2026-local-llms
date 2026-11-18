@@ -87,7 +87,6 @@ const SECTIONS: { title: string; slides: Slide[] }[] = [
             'AMD R9700 — 32 GB at 640 GB/s',
           ],
         }),
-        note: 'Manufacturer-rated bandwidth',
       } as Slide,
     ],
   },
