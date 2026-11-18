@@ -5,7 +5,7 @@
 **Base examined:** \`main\` @ \`252c1890c6b78ce21c34e15dc1c24423cfafc379\`. **Re-fetch latest \`main\` before editing; another coding agent may have pushed meanwhile.**  
 **Implementation target:** \`src/decks/v4.ts\` — active root and \`/4/\` deck.  
 **Do not edit:** archived v1/v2/v3 decks, slide scene builders, older long research handoffs, or existing Chapter 01 wording.  
-**Scope:** fill v4's Chapters **02–07** with simple text list pages; keep the pre-existing 01 pages exactly as they are; **remove empty Chapter 08** ("What to explore next"); end with a **Questions?** content page under Chapter 07, with no extra section divider or other material afterward.  
+**Scope:** fill v4's Chapters **02–07** and a new, simple Chapter **08 — What I learned next** with text list pages; keep the pre-existing 01 pages exactly as they are; replace the old empty Chapter 08 ("What to explore next") with the new one. End with a **Questions?** content page as the last slide in Chapter 08.  
 **This is a concrete implementation handoff, not general brainstorming.** The agent already polling for handoffs can read and apply it. This document does not start or configure the polling automation.
 
 ## Hard requirements
@@ -18,7 +18,7 @@
 6. Support sub-bullets via the **existing \`subs\` property** seen on v4's Pricing slide, or a component already in the deck; don't fake indentation with extra spaces inside plain \`items\` when proper sub-bullet support exists.
 7. Avoid modification of the title: the current **Configuring Local LLMs** is correct.
 8. No separate chapter/page on "parameters" in Getting started. The speaker explicitly declined it.
-9. **Drop** previous planned engine comparison (vLLM hash-blocks vs SGLang radix tree vs llama.cpp slots), batching/roofline deep dives, long EAGLE-3 breakdown, dedicated model-offload flags for vLLM, specialized engines/Engram/Qwen4 "What to explore next" chapter, and extra wrap-up commentary. This v4 run ends at Questions.
+9. **Drop** previous planned engine comparison (vLLM hash-blocks vs SGLang radix tree vs llama.cpp slots), batching/roofline deep dives, long EAGLE-3 breakdown, dedicated model-offload flags for vLLM, specialized engines/Engram/Qwen4 deep-dive pages, and extra wrap-up commentary. The new Chapter 08 is a **single simple list page**, not the old "What to explore next" research chapter. This v4 run ends at Questions.
 
 ---
 
@@ -171,7 +171,7 @@ The first two bullets follow the speaker's wording. The third is the *same page*
 
 **Exactly one bullet.** Do not expand into an elaborate personal drafter-training case study; that is in older technical handoffs if needed for audience questions. This is **not** Intel AutoRound / LLM Compressor; those are separate weight-quantization tools.
 
-### 07 — Sharing local models [2 pages]
+### 07 — Sharing local models [1 page]
 
 **Page: LLM Collective**
 
@@ -181,9 +181,21 @@ The first two bullets follow the speaker's wording. The third is the *same page*
 
 Don't insert protocol details or turn this into a networking tutorial. The verified implementation uses authenticated outbound WebSocket with Yamux carrying streams, but only include them if the speaker later asks. Do not show private gateway addresses, token secrets, internal model inventories or imply pooled VRAM. The gateway checks client API keys and contributor authentication separately; concise audience copy above is intentionally simplified.
 
+### 08 — What I learned next [2 pages]
+
+**New section requested by the speaker.** Keep this short and text-only. Place the section immediately **after Sharing local models and before Questions?**; replace the previous empty "What to explore next" section rather than appending a duplicate.
+
+**Page: What I learned next**
+
+- N-gram weights
+- How the model training process works in more detail
+- Conceptualizing how a token flows through the model
+
+**Exactly those three bullets**, preserving the speaker's phrasing. This is a preview of future learning topics, **not** a technical explanation page or a request to create 3D illustrations.
+
 **Page: Questions?**
 
-No bullet points. **This is the final page.** No Section 08 and no separate outro heading or "What to explore next" chapter. The user explicitly requested this ending.
+No bullet points. **This is the final page** in the new Chapter 08. No extra section divider, outro, or content after it.
 
 ---
 
@@ -203,8 +215,8 @@ No bullet points. **This is the final page.** No Section 08 and no separate outr
 
 1. Root and \`/4/\` render v4 unchanged in visual design, with v3/v2/v1 archives still accessible.
 2. Section 01's existing five pages are byte-for-byte unchanged (except automatic page numbering caused by overall deck size).
-3. Sections 02–07 have **2, 5, 2, 2, 2, 2 pages** respectively; final content slide is "Questions?". **Section 08 has been removed**.
-4. 20 total content pages = 5 existing Section 01 + 15 new; 7 section dividers + 1 title = **28 total pages**.
+3. Sections 02–08 have **2, 5, 2, 2, 2, 1, 2 pages** respectively; final content slide is "Questions?". **Chapter 08 is "What I learned next"**, with one three-bullet page followed by the Questions page.
+4. **21 content pages** = 5 existing Section 01 + 16 new; **8 section dividers + 1 title = 30 total pages**.
 5. All CLI options use valid long names and the spellings above. Screenshots confirm sub-bullets are nested, code flags are readable on a projector and long hardware lines don't overflow.
 6. Run \`pnpm build\` (plus any repo-specific lint/tests); check \`src/main.tsx\` still routes v4 at root and \`/4/\`.
 7. **Commit and push** implementation as a normal atomic change on latest \`main\`; preserve concurrent changes and report the final commit.
