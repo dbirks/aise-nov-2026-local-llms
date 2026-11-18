@@ -5,7 +5,7 @@ export default function build(scene, emit) {
   const box = new THREE.BoxGeometry(1, 1, 1), dark = lam(0x222222), mid = lam(0x666666);
   let steps = 1, playing = true, beat = 0, clock = 0;
   function slab(x, y, w, h, mat = dark) { const m = new THREE.Mesh(box, mat); m.position.set(x, y, 0); m.scale.set(w, h, 0.35); g.add(m); return m; }
-  function label(s, x, y, h = 0.45) {
+  function label(s, x, y, h = 0.48) {
     const c = document.createElement('canvas'), p = c.getContext('2d');
     p.font = 'bold 76px monospace'; c.width = Math.ceil(p.measureText(s).width) + 24; c.height = 98;
     p.font = 'bold 76px monospace'; p.fillStyle = '#111'; p.textBaseline = 'middle'; p.fillText(s, 12, 49);
@@ -22,30 +22,30 @@ export default function build(scene, emit) {
     const ar = new THREE.ArrowHelper(d.clone().normalize(), a, d.length(), 0x111111, 0.16, 0.1);
     g.add(ar); return ar;
   }
-  for (let i = 0; i < 6; i++) slab(-2.35, -1.5 + i * 0.45, 1.4, 0.27, mid);
-  slab(-2.35, 1.4, 1.8, 0.16);
-  label('output head', -2.35, 1.82, 0.46);
-  label('main model', -2.35, -2.02, 0.46);
-  slab(1.15, 0.25, 1.6, 0.55, mid);
-  slab(1.15, -0.25, 1.6, 0.16);
-  label('mtp module', 1.15, 0.84, 0.46);
-  label('projection', 1.15, -0.64, 0.46);
-  arrow(-1.40, 1.0, 0.25, 0.45);
-  label('hidden state', -0.45, 0.30, 0.43);
-  line([[-1.45, 1.4, 0], [1.15, 1.4, 0], [1.15, 0.55, 0]], true);
-  label('shared', -0.05, 1.82, 0.44);
-  slab(1.15, -1.45, 1.5, 0.18);
-  label('embedding', 1.15, -1.86, 0.46);
-  line([[1.15, -1.35, 0], [2.45, -1.35, 0], [2.45, -0.25, 0], [1.95, -0.25, 0]], true);
-  label('shared', 2.65, -0.95, 0.44);
-  const loop = arrow(2.05, 0.35, 2.05, 0.85);
-  const loopLine = line([[2.05, 0.85, 0], [2.85, 0.85, 0], [2.85, -0.1, 0], [2.05, -0.1, 0]]);
-  const loopLabel = label('state + token', 2.65, 1.25, 0.44);
-  label('t', -2.55, -2.62, 0.46);
-  label('t+1 main', -0.65, -2.62, 0.46);
-  const tokens = [label('t+2', 0.95, -2.62, 0.46), label('t+3', 2.05, -2.62, 0.46), label('t+4', 3.15, -2.62, 0.46)];
+  for (let i = 0; i < 6; i++) slab(-2.65, -1.5 + i * 0.45, 1.4, 0.27, mid);
+  slab(-2.65, 1.4, 1.8, 0.16);
+  label('output head', -2.65, 1.82, 0.48);
+  label('main model', -2.65, -2.02, 0.48);
+  slab(1.65, 0.25, 1.6, 0.55, mid);
+  slab(1.65, -0.25, 1.6, 0.16);
+  label('mtp module', 1.65, 0.84, 0.48);
+  label('projection', 1.65, -0.64, 0.48);
+  arrow(-1.70, 1.0, 0.65, 0.45);
+  label('hidden state', -0.52, 0.22, 0.47);
+  line([[-1.75, 1.4, 0], [1.65, 1.4, 0], [1.65, 0.55, 0]], true);
+  label('shared', -0.05, 1.82, 0.47);
+  slab(1.65, -1.45, 1.5, 0.18);
+  label('embedding', 1.65, -1.86, 0.48);
+  line([[1.65, -1.35, 0], [2.85, -1.35, 0], [2.85, -0.25, 0], [2.45, -0.25, 0]], true);
+  label('shared', 3.45, -0.82, 0.47);
+  const loop = arrow(2.55, 0.35, 2.55, 0.85);
+  const loopLine = line([[2.55, 0.85, 0], [3.35, 0.85, 0], [3.35, -0.1, 0], [2.55, -0.1, 0]]);
+  const loopLabel = label('state + token', 2.95, 1.28, 0.47);
+  label('t', -2.75, -2.62, 0.48);
+  label('t+1 main', -0.70, -2.62, 0.48);
+  const tokens = [label('t+2', 1.20, -2.62, 0.48), label('t+3', 2.30, -2.62, 0.48), label('t+4', 3.40, -2.62, 0.48)];
   return {
-    view: { target: [0.20, -0.20, 0], radius: 40, theta: 0, phi: Math.PI / 2, size: 3.25 },
+    view: { target: [0.05, -0.20, 0], radius: 40, theta: 0, phi: Math.PI / 2, size: 3.6 },
     update(dt) {
       if (playing) { clock += dt; if (clock > 3) { clock = 0; beat = (beat + 1) % 4; } }
       tokens.forEach((t, i) => { t.visible = i < steps; t.material.opacity = beat === i + 1 ? 1 : 0.65; });

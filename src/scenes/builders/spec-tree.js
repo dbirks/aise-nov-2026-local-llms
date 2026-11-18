@@ -27,7 +27,7 @@ export default function build(scene, emit) {
     nodes.forEach((n, i) => {
       if (n.p >= 0) tube([nodes[n.p].x, nodes[n.p].y, 0], [n.x, n.y, 0]);
       cube(n.x, n.y, 0.8, 0.44, beat >= 2 && !path.includes(i) ? pale : dark);
-      label(n.word, n.x, n.y + 0.48, 0.44);
+      label(n.word, n.x === -3.05 ? n.x - 0.15 : n.x, n.y + 0.48, 0.44);
     });
     label(draft === 'tree' ? 'draft tree' : 'draft line', -1.5, 2.35, 0.48);
     label('attention mask', 2.25, 2.35, 0.48);

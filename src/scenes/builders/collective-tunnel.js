@@ -22,21 +22,21 @@ function line(scene, x1, y1, x2, y2, width = 0.07, c = 0x222222) {
 
 export default function build(scene, emit) {
   const out = emitter(emit); let phase = 'serve', playing = true, t = 0, growth = 1;
-  box(scene, -2.65, 0, 2.1, 2.6); label(scene, 'home machine', -2.65, 1.72, 0.50);
-  box(scene, -2.65, 0.55, 1.45, 0.62, 0.3, 0xeeeeee); label(scene, 'agent', -2.65, 0.55, 0.48);
-  box(scene, -2.65, -0.55, 1.45, 0.62, 0.3, 0xeeeeee); label(scene, 'engine', -2.65, -0.55, 0.48);
-  box(scene, -1.25, 0, 0.18, 3.4, 0.3, 0x444444); label(scene, 'home router', -1.25, -2.10, 0.48);
-  box(scene, 2.65, 0, 1.95, 1.7); label(scene, 'gateway (k8s)', 2.65, 1.25, 0.50);
-  const tube = box(scene, 0.5, 0, 2.9, 0.7, 0.18, 0x999999);
-  const streams = [-0.19, 0, 0.19].map(y => line(scene, -1.16, y, 1.67, y, 0.045));
-  label(scene, 'outbound WSS', 0.30, 0.80, 0.48);
-  label(scene, 'Yamux streams', 0.30, -0.78, 0.48);
-  line(scene, -0.25, -1.35, -1.0, -1.35, 0.07);
-  line(scene, -0.80, -1.15, -1.0, -1.35, 0.07);
-  line(scene, -0.80, -1.55, -1.0, -1.35, 0.07);
-  line(scene, -0.68, -1.15, -0.32, -1.55, 0.08);
-  line(scene, -0.68, -1.55, -0.32, -1.15, 0.08);
-  label(scene, 'inbound blocked', 0.95, -1.45, 0.48);
+  box(scene, -2.65, 0, 2.1, 2.5); label(scene, 'home machine', -2.65, 1.78, 0.50);
+  box(scene, -2.65, 0.52, 1.45, 0.62, 0.3, 0xeeeeee); label(scene, 'agent', -2.65, 0.52, 0.48);
+  box(scene, -2.65, -0.52, 1.45, 0.62, 0.3, 0xeeeeee); label(scene, 'engine', -2.65, -0.52, 0.48);
+  box(scene, -1.25, 0, 0.18, 2.85, 0.3, 0x444444); label(scene, 'home router', -1.25, -1.88, 0.48);
+  box(scene, 2.75, 0, 1.85, 1.7); label(scene, 'gateway (k8s)', 2.75, 1.25, 0.50);
+  const tube = box(scene, 0.5, 0, 3.0, 0.7, 0.18, 0x999999);
+  const streams = [-0.19, 0, 0.19].map(y => line(scene, -1.16, y, 1.82, y, 0.045));
+  label(scene, 'outbound WSS', 0.35, 0.80, 0.48);
+  label(scene, 'Yamux streams', 0.35, -0.78, 0.48);
+  line(scene, -0.35, -1.35, -1.05, -1.35, 0.07);
+  line(scene, -0.85, -1.15, -1.05, -1.35, 0.07);
+  line(scene, -0.85, -1.55, -1.05, -1.35, 0.07);
+  line(scene, -0.75, -1.15, -0.40, -1.55, 0.08);
+  line(scene, -0.75, -1.55, -0.40, -1.15, 0.08);
+  label(scene, 'inbound blocked', 1.25, -1.42, 0.48);
   const packets = streams.map(() => box(scene, 0, 0, 0.18, 0.18, 0.25, 0x111111));
   return {
     view: { target: [0, 0, 0], radius: 40, theta: 0, phi: Math.PI / 2, size: 3.65 },
@@ -45,11 +45,11 @@ export default function build(scene, emit) {
       const target = phase === 'serve' ? 1 : Math.min(1, (t % 10) / 4);
       growth += (target - growth) * ease(dt, 6);
       tube.scale.x = Math.max(0.001, growth);
-      tube.position.x = -1.16 + 1.45 * growth;
-      streams.forEach(s => { s.scale.x = Math.max(0.001, growth); s.position.x = -1.16 + 1.415 * growth; });
+      tube.position.x = -1.16 + 1.49 * growth;
+      streams.forEach(s => { s.scale.x = Math.max(0.001, growth); s.position.x = -1.16 + 1.49 * growth; });
       packets.forEach((m, i) => {
         m.visible = phase === 'serve';
-        m.position.set(-1.05 + 2.60 * ((i % 2 ? 1 - (t / 5 + i / 3) % 1 : (t / 5 + i / 3) % 1)), (i - 1) * 0.19, 0.3);
+        m.position.set(-1.05 + 2.75 * ((i % 2 ? 1 - (t / 5 + i / 3) % 1 : (t / 5 + i / 3) % 1)), (i - 1) * 0.19, 0.3);
       });
       out({ playing, readout: phase === 'serve' ? 'simulated · 1 outbound tunnel · 3 streams in flight · 0 inbound ports' : 'simulated · connect: outbound tunnel forming · 0 inbound ports' });
     },
