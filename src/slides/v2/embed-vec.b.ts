@@ -9,5 +9,5 @@ export const slides: Slide[] = [{
   notes: meta({ id: 'embed-vec-b', claim: 'Similar words, similar directions', evidence: ['SYNTHETIC DEMO', 'MECHANISM'],
     simulated: 'Hand-placed coordinates and generated ribbon values.',
     not: 'These are real model coordinates; the 3D axes mean anything; static word vectors behave like contextual hidden states; analogies always work in real LLMs.',
-    open: 'exact hidden_size for Qwen3.8-27B', sources: ['https://arxiv.org/abs/1301.3781 (Mikolov et al. 2013, word2vec)', 'Qwen3.8-27B config.json hidden_size — verify (docs/research/v2/embed-quant.md)'] }),
+    sources: ['https://arxiv.org/abs/1301.3781 (Mikolov et al. 2013, word2vec)', 'https://huggingface.co/Qwen/Qwen3.8-27B config.json hidden_size 5120 (fetched 2026-11-18, docs/research/v2/kv-serving.md)'] }),
 }];
