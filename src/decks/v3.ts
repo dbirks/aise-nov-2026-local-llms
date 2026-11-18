@@ -47,7 +47,7 @@ const deck: Slide[] = [
   section(1),
   ...ids(1, 'why-summary', 'why-objection', 'why-good-enough', 'why-cost', 'why-independence', 'why-fun'),
   section(2),
-  ...ids(2, 'train-vs-infer', 'engines', 'setup-path'),
+  ...ids(2, 'train-vs-infer', 'engines'),
   section(3),
   ...ids(3, 'setup-egpu', 'setup-slow-link', 'setup-hardware', 'gguf', 'embed-vec', 'quant-what', 'quant-types',
     'param-count', 'nvfp4', 'autoround', 'autoround-tool', 'moe'),

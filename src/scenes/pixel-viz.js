@@ -689,6 +689,14 @@ for (const [path, mod] of Object.entries(EXTRA)) {
   if (!kind.startsWith('_') && mod.default) BUILD[kind] = mod.default;
 }
 
+// Text labels in builders are Sprites with a CanvasTexture. LABEL_SCALE shrinks them all at draw time
+// (scaled before render, restored after) so builders that reset a label's scale each frame still work.
+let LABEL_SCALE = 1;
+export function setLabelScale(f) { LABEL_SCALE = f; }
+function scaleLabels(scene, f) {
+  scene.traverse(o => { if (o.isSprite && o.material.map && o.material.map.isCanvasTexture) o.scale.multiplyScalar(f); });
+}
+
 export function mount(el, kind, opts = {}, onState = () => {}) {
   const renderer = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true });
   renderer.setPixelRatio(1);
@@ -732,7 +740,10 @@ export function mount(el, kind, opts = {}, onState = () => {}) {
     now = now ?? performance.now();
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     viz.update(dt); orbit.update(dt);
+    const ls = LABEL_SCALE;
+    if (ls !== 1) scaleLabels(scene, ls);
     renderer.setRenderTarget(rt); renderer.render(scene, cam);
+    if (ls !== 1) scaleLabels(scene, 1 / ls);
     post.uniforms.tDiffuse.value = rt.texture;
     renderer.setRenderTarget(null); renderer.render(pscene, pcam);
   }

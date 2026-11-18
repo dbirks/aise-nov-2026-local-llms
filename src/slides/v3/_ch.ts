@@ -3,7 +3,7 @@ export const TALK = 'Configuring Local LLMs';
 export const CHAPTERS: [string, string][] = [
   ['00', 'Opening'],
   ['01', 'Why run a local model?'],
-  ['02', 'Getting started: from Ollama to inference engines'],
+  ['02', 'Getting started'],
   ['03', 'How do you fit a useful model on your GPU?'],
   ['04', 'How do you give it more context?'],
   ['05', 'How do you run several agents at once?'],
@@ -14,7 +14,6 @@ export const CHAPTERS: [string, string][] = [
 ];
 /** Shorter labels for the title-slide list (the full question is on each divider). Same order as CHAPTERS. */
 export const SHORT: Record<string, string> = {
-  '02': 'From Ollama to engines',
   '03': 'Fitting a model on your GPU',
   '04': 'More context',
   '05': 'Several agents at once',

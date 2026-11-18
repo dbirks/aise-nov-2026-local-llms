@@ -58,7 +58,7 @@ export const COPY: Record<string, Patch> = {
   engines: {
     title: 'The inference engine runs the model',
     items: [
-      'llama.cpp, vLLM, and SGLang are engines that load weights and compute responses. Ollama makes local models easier to download and run.',
+      'Ollama, llama.cpp, vLLM, and SGLang are inference engines that load the weights, manage the context, and generate responses',
       'GGUF and safetensors are file formats for storing model tensors.',
     ],
   },

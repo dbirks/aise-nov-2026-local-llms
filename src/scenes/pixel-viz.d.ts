@@ -37,3 +37,5 @@ export interface Framing {
 }
 
 export function mount(el: HTMLElement, kind: MountKind, opts?: MountOpts, onState?: (s: SceneState) => void): SceneHandle;
+
+export function setLabelScale(f: number): void;
