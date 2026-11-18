@@ -33,6 +33,13 @@ const SECTIONS: { title: string; slides: Slide[] }[] = [
       },
     ],
   },
+  { title: 'Getting started', slides: [] },
+  { title: 'Fitting a model into VRAM', slides: [] },
+  { title: 'More context', slides: [] },
+  { title: 'Several agents at once', slides: [] },
+  { title: 'Making things faster', slides: [] },
+  { title: 'Sharing local models', slides: [] },
+  { title: 'What to explore next', slides: [] },
 ];
 
 const deck: Slide[] = [
