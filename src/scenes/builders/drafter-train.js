@@ -18,7 +18,7 @@ export default function build(scene, emit) {
   };
   const xs = [-4.2, -2.55, -0.9, 0.75, 2.4, 4.05];
   const names = ['trajectories', 'rollouts', 'hidden states', 'train', 'convert', 'serve (vLLM)'];
-  names.forEach((n, i) => label(n, xs[i], i % 2 === 0 ? 0.05 : -1.75, 0.36));
+  names.forEach((n, i) => label(n, xs[i], i % 2 === 0 ? 0.55 : 0.1, 0.28));  // two staggered rows above the stations
   box(0, -1.05, 10, 0.08, 1.2, mid);
   for (let j = 0; j < 3; j++) box(xs[0] + j * 0.08, -0.76 + j * 0.12, 0.8, 0.08, 0.6, dark);
   box(xs[1], -0.65, 1, 0.65, 0.55); label('target', xs[1], -0.65, 0.22).material.color.setHex(0xffffff);

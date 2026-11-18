@@ -3,7 +3,7 @@ import { THREE, lam, ease, emitter } from './_kit.js';
 
 const engines = ['llamacpp', 'vllm', 'sglang', 'ninfer', 'radiance', 'pennyroyal'];
 const names = ['llama.cpp', 'vLLM', 'SGLang', 'NInfer', 'Radiance', 'Pennyroyal'];
-const rows = ['RTX 5090', 'RTX PRO 6000', 'Radeon R9700', 'Apple silicon', 'CPU only'];
+const rows = ['5090', 'PRO 6000', 'R9700', 'Apple', 'CPU'];
 // 1 = documented example, 2 = speaker report, 0 = no source recorded.
 const cells = [
   [1, 1, 1, 1, 0, 0],
@@ -33,12 +33,12 @@ export default function build(scene, emit) {
   const out = emitter(emit);
   let selected = 'all', unknown = true, playing = true, elapsed = 0, beat = 0;
   const columns = [], scopesLabels = [];
-  const dx = 1.57, dz = 1.12;
+  const dx = 1.3, dz = 1.12;
   for (let c = 0; c < 6; c++) {
     const group = new THREE.Group(); scene.add(group); columns.push(group);
     const x = (c - 2.5) * dx;
-    group.add(label(names[c], x, 0.14, -3.25, 0.32));
-    const scope = label(scopes[c], 0, 2.3, -3.7, 0.34);
+    group.add(label(names[c], x, 0.14, c % 2 === 0 ? -2.95 : -3.6, 0.42));  // staggered so names don't collide
+    const scope = label(scopes[c], -0.3, 2.3, -4.3, 0.42);
     scope.visible = false; scene.add(scope); scopesLabels.push(scope);
     for (let r = 0; r < 5; r++) {
       const z = (r - 2) * dz;
@@ -55,10 +55,10 @@ export default function build(scene, emit) {
       }
     }
   }
-  rows.forEach((name, r) => scene.add(label(name, -5.65, 0.12, (r - 2) * dz, 0.32)));
-  scene.add(label('documented', -3.4, 1.65, 3.6, 0.3));
-  scene.add(label('outline: speaker report', 0, 1.65, 3.6, 0.3));
-  scene.add(label('empty: no source', 3.4, 1.65, 3.6, 0.3));
+  rows.forEach((name, r) => scene.add(label(name, -4.55, 0.12, (r - 2) * dz, 0.42)));
+  scene.add(label('dark: documented', -2.4, 0.1, 3.2, 0.36));
+  scene.add(label('outline: speaker report', -0.2, 0.1, 3.75, 0.36));
+  scene.add(label('empty: no source', 2.3, 0.1, 3.2, 0.36));
   const apply = () => {
     columns.forEach((group, c) => {
       const active = selected === 'all' || selected === engines[c];
@@ -74,7 +74,7 @@ export default function build(scene, emit) {
   };
   apply();
   return {
-    view: { target: [-0.5, 0.4, 0], radius: 40, theta: 0.08, phi: 0.6, size: 5.5 },
+    view: { target: [-0.6, 0.2, 0], radius: 40, theta: 0.08, phi: 0.6, size: 4.0 },
     update(dt) {
       if (playing) { elapsed += dt; if (elapsed >= 2) { elapsed = 0; beat = (beat + 1) % 6; } }
       columns.forEach((group, c) => {
