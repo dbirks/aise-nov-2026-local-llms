@@ -3,7 +3,7 @@ import { THREE, lam, ease, emitter } from './_kit.js';
 
 export default function build(scene, emit) {
   const out = emitter(emit);
-  const xs = [-3.9, -1.3, 1.3, 3.9];
+  const xs = [-3.2, -1.07, 1.07, 3.2];
   const keys = ['paper', 'v4', 'qwen', 'v41'];
   const descriptions = [
     'paper · hash rows and gate · research mechanism',
@@ -27,7 +27,7 @@ export default function build(scene, emit) {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), lam(color));
     mesh.position.set(x, y, z); scene.add(mesh); return mesh;
   };
-  box(0, -1.3, 0, 8.3, 0.07, 0.12, 0x222222);
+  box(0, -1.3, 0, 6.8, 0.07, 0.12, 0x222222);
   const markers = xs.map(x => box(x, -1.3, 0, 0.2, 0.25, 0.22));
   const dates = ['jan 2026', 'apr 2026', 'aug 2026', 'sep 2026'];
   const names = ['engram paper', 'deepseek v4', 'qwen3.8 flash next', 'deepseek v4.1'];
@@ -36,7 +36,7 @@ export default function build(scene, emit) {
   ['hash', 'rows', 'gate'].forEach((s, i) => {
     const x = xs[0] + (i - 1) * 0.65;
     box(x, 0.25, 0, 0.45, 0.45, 0.25, 0x777777);
-    label(s, x, 0.8, 0, 0.25);
+    label(s, x, 0.8, 0, 0.26);
   });
   box(xs[0], 0.25, -0.05, 1.7, 0.06, 0.08, 0x222222);
   // Model blocks are schematic. Table heights use sqrt(parameter count).

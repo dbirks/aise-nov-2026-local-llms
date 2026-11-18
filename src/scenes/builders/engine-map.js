@@ -17,10 +17,10 @@ const scopes = ['CUDA · Vulkan · Metal', 'GPU · CPU · Metal plugin', 'GPU ·
 function label(text, x, y, z, height = 0.32) {
   const canvas = document.createElement('canvas');
   const g = canvas.getContext('2d');
-  g.font = 'bold 68px sans-serif';
+  g.font = 'bold 72px sans-serif';
   canvas.width = Math.ceil(g.measureText(text).width) + 16;
   canvas.height = 88;
-  g.font = 'bold 68px sans-serif'; g.fillStyle = '#111111';
+  g.font = 'bold 72px sans-serif'; g.fillStyle = '#111111';
   g.textBaseline = 'middle'; g.fillText(text, 8, 44);
   const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace;
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
@@ -33,12 +33,12 @@ export default function build(scene, emit) {
   const out = emitter(emit);
   let selected = 'all', unknown = true, playing = true, elapsed = 0, beat = 0;
   const columns = [], scopesLabels = [];
-  const dx = 1.12, dz = 0.8;
+  const dx = 1.57, dz = 1.12;
   for (let c = 0; c < 6; c++) {
     const group = new THREE.Group(); scene.add(group); columns.push(group);
     const x = (c - 2.5) * dx;
-    group.add(label(names[c], x, 0.14, -2.65, 0.29));
-    const scope = label(scopes[c], 0, 2.3, -2.8, 0.34);
+    group.add(label(names[c], x, 0.14, -3.25, 0.32));
+    const scope = label(scopes[c], 0, 2.3, -3.7, 0.34);
     scope.visible = false; scene.add(scope); scopesLabels.push(scope);
     for (let r = 0; r < 5; r++) {
       const z = (r - 2) * dz;
@@ -55,10 +55,10 @@ export default function build(scene, emit) {
       }
     }
   }
-  rows.forEach((name, r) => scene.add(label(name, -4.25, 0.12, (r - 2) * dz, 0.29)));
-  scene.add(label('documented', -2.8, 1.65, 2.6, 0.3));
-  scene.add(label('outline: speaker report', 0, 1.65, 2.6, 0.3));
-  scene.add(label('empty: no source', 2.8, 1.65, 2.6, 0.3));
+  rows.forEach((name, r) => scene.add(label(name, -5.65, 0.12, (r - 2) * dz, 0.32)));
+  scene.add(label('documented', -3.4, 1.65, 3.6, 0.3));
+  scene.add(label('outline: speaker report', 0, 1.65, 3.6, 0.3));
+  scene.add(label('empty: no source', 3.4, 1.65, 3.6, 0.3));
   const apply = () => {
     columns.forEach((group, c) => {
       const active = selected === 'all' || selected === engines[c];
@@ -74,7 +74,7 @@ export default function build(scene, emit) {
   };
   apply();
   return {
-    view: { target: [0, 0.4, 0], radius: 40, theta: 0.08, phi: 0.8, size: 4.5 },
+    view: { target: [-0.5, 0.4, 0], radius: 40, theta: 0.08, phi: 0.6, size: 5.5 },
     update(dt) {
       if (playing) { elapsed += dt; if (elapsed >= 2) { elapsed = 0; beat = (beat + 1) % 6; } }
       columns.forEach((group, c) => {

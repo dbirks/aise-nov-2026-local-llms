@@ -5,6 +5,7 @@ const inputs = [[1,0.5,-0.25,0.8],[-0.6,1,0.3,-0.2]];
 const dot = (row, h) => row.reduce((sum, v, i) => sum + v * h[i], 0);
 
 export default function build(scene, emit) {
+  const layout = new THREE.Group(); layout.scale.x = 0.8; scene.add(layout);
   const out = emitter(emit), box = new THREE.BoxGeometry(1, 1, 1);
   const solid = lam(0x222222), errorMat = lam(0x080808);
   const lineMat = new THREE.LineBasicMaterial({ color: 0x777777 });
@@ -13,17 +14,17 @@ export default function build(scene, emit) {
   let wq, y, yq, scales;
   const current = Array(16).fill(0), currentH = Array(4).fill(0), currentY = Array(4).fill(0), currentQ = Array(4).fill(0);
   const bars = [], outlines = [], hbars = [], ybars = [], yout = [], errors = [];
-  const levels = new THREE.Group(); scene.add(levels);
-  const marker = new THREE.Mesh(box, errorMat); marker.scale.set(0.12, 0.05, 0.32); scene.add(marker);
+  const levels = new THREE.Group(); layout.add(levels);
+  const marker = new THREE.Mesh(box, errorMat); marker.scale.set(0.12, 0.05, 0.32); layout.add(marker);
   function label(text, x, y, z, height = 0.32) {
     const canvas = document.createElement('canvas'), g = canvas.getContext('2d');
     g.font = 'bold 72px monospace'; canvas.width = Math.ceil(g.measureText(text).width) + 20; canvas.height = 92;
     g.font = 'bold 72px monospace'; g.fillStyle = '#111'; g.textBaseline = 'middle'; g.fillText(text, 10, 46);
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, depthTest: false }));
-    sprite.scale.set(height * canvas.width / canvas.height, height, 1); sprite.position.set(x, y, z); sprite.renderOrder = 10; scene.add(sprite); return sprite;
+    sprite.scale.set(height * canvas.width / canvas.height / 0.8, height, 1); sprite.position.set(x, y, z); sprite.renderOrder = 10; layout.add(sprite); return sprite;
   }
-  function bar(material) { const m = new THREE.Mesh(box, material); scene.add(m); return m; }
-  function outline() { const e = new THREE.LineSegments(new THREE.EdgesGeometry(box), lineMat); scene.add(e); return e; }
+  function bar(material) { const m = new THREE.Mesh(box, material); layout.add(m); return m; }
+  function outline() { const e = new THREE.LineSegments(new THREE.EdgesGeometry(box), lineMat); layout.add(e); return e; }
   function setBar(obj, x, z, value, width, depth, factor = 1.55) {
     const height = Math.max(Math.abs(value) * factor, 0.002);
     obj.position.set(x, value * factor / 2, z); obj.scale.set(width, height, depth);
@@ -33,10 +34,10 @@ export default function build(scene, emit) {
     setBar(outlines[r * 4 + c], -3.25 + c * 0.5, (r - 1.5) * 0.54, W[r][c], 0.36, 0.36);
   }
   for (let i = 0; i < 4; i++) { hbars.push(bar(solid)); ybars.push(bar(solid)); yout.push(outline()); errors.push(bar(errorMat)); }
-  const plane = new THREE.Mesh(box, lam(0x999999)); plane.position.set(-0.05, -0.018, 0); plane.scale.set(8.3, 0.025, 2.5); scene.add(plane);
-  label('weights W', -2.5, 1.85, 0); label('input h', 0, 1.85, 0); label('output y', 2.35, 1.85, 0);
-  label('outline: original', -2.45, 1.52, 0, 0.22); label('solid: quantized', -2.45, 1.22, 0, 0.22);
-  label('y   yq   |error|', 2.45, 1.48, 0, 0.22);
+  const plane = new THREE.Mesh(box, lam(0x999999)); plane.position.set(-0.1, -0.018, 0); plane.scale.set(6.8, 0.025, 2.15); layout.add(plane);
+  label('weights W', -2.5, 2.35, 0); label('input h', 0, 2.35, 0); label('output y', 2.35, 2.35, 0);
+  label('outline: original', -2.5, 1.85, 0, 0.32); label('solid: quantized', -2.5, 1.45, 0, 0.32);
+  label('y   yq   |error|', 2.35, 1.85, 0, 0.32);
   let codeLabel;
   function recompute() {
     const max = Math.max(...W.flat().map(Math.abs)), qmax = 2 ** (bits - 1) - 1;
@@ -50,13 +51,13 @@ export default function build(scene, emit) {
       const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-3.48, v * 1.55, (r - 1.5) * 0.54 - 0.23), new THREE.Vector3(-1.52, v * 1.55, (r - 1.5) * 0.54 - 0.23)]);
       levels.add(new THREE.Line(geometry, levelMat));
     }
-    if (codeLabel) { scene.remove(codeLabel); codeLabel.material.map.dispose(); codeLabel.material.dispose(); }
-    codeLabel = label(`toy int${bits} [${-qmax-1},${qmax}] × scale`, -2.5, -1.65, 0, 0.22);
+    if (codeLabel) { layout.remove(codeLabel); codeLabel.material.map.dispose(); codeLabel.material.dispose(); }
+    codeLabel = label(`toy int${bits} [${-qmax-1},${qmax}] × scale`, -2.5, -1.8, 0, 0.32);
   }
-  label('not nvfp4', -2.5, -1.95, 0, 0.23);
+  label('not nvfp4', -2.5, -2.2, 0, 0.32);
   recompute();
   return {
-    view: { target: [-0.15, 0, 0], radius: 40, theta: 0.13, phi: 1.12, size: 3.2 },
+    view: { target: [-0.15, 0, 0], radius: 40, theta: 0.13, phi: 1.12, size: 2.6 },
     update(dt) {
       if (playing) { clock += dt; if (clock >= 3) { clock = 0; beat = (beat + 1) % 4; } }
       const k = ease(dt, 7), h = inputs[input - 1];

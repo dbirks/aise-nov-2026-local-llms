@@ -26,7 +26,7 @@ export default function build(scene, emit) {
   label(scene, 'toy block = 4 tokens', 0, -0.8, 2.4);
   label(scene, 'vLLM default larger', 0, -1.25, 2.4);
   lanes.forEach((z, r) => {
-    label(scene, `request ${'ABC'[r]}`, -4.7, 0.15, z);
+    label(scene, `request ${'ABC'[r]}`, 4.95, 0.15, z);
     tiles[r] = []; privateBlocks[r] = []; refs[r] = [];
     for (let i = 0; i < 16; i++) {
       const tile = box(scene, 0.43, 0.12, 0.52, 0x777777, xToken(i), 0, z);
@@ -53,7 +53,7 @@ export default function build(scene, emit) {
   for (let k = 0; k < 3; k++) hatch.push(box(scene, 0.05, 0.025, 0.65, 0x111111, 0, 0.09, 0));
   let t = 0, playing = true, change = -1, evicted = false, fall = 0;
   return {
-    view: { target: [0, 0.75, 0], radius: 40, theta: 0.15, phi: 1.1, size: 3.9 },
+    view: { target: [0.5, 0.75, 0], radius: 40, theta: 0.15, phi: 1.1, size: 3.9 },
     update(dt) {
       if (playing) t = (t + dt) % loop;
       fall += ((evicted ? 1 : 0) - fall) * ease(dt, 6);
