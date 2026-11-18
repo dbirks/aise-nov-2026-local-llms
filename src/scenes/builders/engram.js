@@ -386,7 +386,6 @@ export default function build(scene, emit) {
         else beat();
       }
       else if (name === 'back') { playing = false; startup = 1; rewind(); }
-      else if (name === 'back') { playing = false; newRun(); } // no undo history: back restarts the run
       else if (name === 'mode') { mode = PERIOD[String(arg)] ? String(arg) : 'prefill'; newRun(); }
       else if (name === 'ngram') { n = Number(arg) === 2 ? 2 : 3; newRun(); }
       else if (name === 'collision') {

@@ -316,7 +316,6 @@ export default function build(scene, emit) {
     action(name, arg) {
       if (name === 'play') { playing = !playing; acc = 0; }
       else if (name === 'step') { playing = false; acc = 0; stepBeat = true; }
-      else if (name === 'back') { playing = false; acc = 0; } // stateful sim without undo: back just pauses
       else if (name === 'back') { playing = false; acc = 0; stepBeat = false; rewind(); }
       else if (name === 'agents') {
         want = [1, 4, 8, 24].includes(Number(arg)) ? Number(arg) : 8;
