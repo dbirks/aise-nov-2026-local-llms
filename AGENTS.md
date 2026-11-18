@@ -1,6 +1,8 @@
 # Implementation-agent instructions
 
-The task is to turn [the research notes](docs/local-llm-talk-research-notes.md) into an **interactive, 3D-first technical presentation**, not a conventional static slide deck. The speaker is presenting at an AI/software-engineering meetup in November 2026 for ~30 minutes.
+The task is to turn the [current production handoff](docs/presentation-production-handoff.md) and [supporting research](docs/local-llm-talk-research-notes.md) into an **interactive, 3D-first technical presentation**, not a conventional static slide deck. The speaker is presenting at an AI/software-engineering meetup in November 2026 for ~30 minutes.
+
+> **Priority / source of truth:** [Presentation Production Handoff](docs/presentation-production-handoff.md) is the current narrative and scene-by-scene implementation contract. Read it **first**. The older [research notes](docs/local-llm-talk-research-notes.md) and historical README sections are supporting background, not an agreed slide order. Existing demo pages are exploratory visual prototypes, not presenter-approved content. No speaker notes are planned.
 
 ## Intended audience and experience
 
@@ -49,3 +51,12 @@ Token tiles and positional axes; matrix grids and vector tips; transformer layer
 ## Output organization (suggestion)
 
 Use a data-driven scene registry containing a scene id, narration, sources, optional config flag mapping, axes/visual encoding, steps, camera positions, controls, and accuracy constraints. Build presentation sequencing independently so the speaker can jump between concepts and revisit scenes.
+
+## Research-to-visual implementation process (current)
+
+- Create three **reviewable iterations for each new conceptual scene**: **V1** minimal truthful mechanism, **V2** accurate spatial/dependency behavior with interaction and edge cases, **V3** stage-ready, legible camera and presentation controls. Do not make V3 impressive at the expense of correctness; retain comparison artifacts.
+- Every scene starts with a **real engineering question** from the speaker's loosely autobiographical journey, then ordinary-language explanation → correct technical term → actual tensor/data flow → deployment consequence. Avoid arbitrary metaphors, unexplained acronym walls and speculative speedup figures.
+- Ground both the speaker's anecdotes and concrete engine/runtime claims. Identify **measured results, speaker recollections, manufacturer peaks, synthetic demonstrations and unverified/version-dependent behavior** separately.
+- Do not turn the walkthrough into a fixed line-by-line vLLM configuration tour. Show actual commands where they genuinely illuminate a choice; the speaker prefers topic-anchored explanations following how he learned.
+- The LLM Collective reference comes from a separate **private** project. If you have authorized connector access, verify its real WSS/Yamux outbound application-tunnel architecture, but keep published scenes **public-safe**: no credentials, internal hosts, private topology, private data or invented pooling of GPU memory. Also do not imply remote inference meets a client-work rule requiring all data to stay on the speaker's laptop.
+- Build **small packages of scenes**, verify technical invariants, capture V1/V2/V3 artifacts and report what was tested. Do not automatically replace the speaker's existing style experiments or insert all research scenes into the final 30-minute sequence.
