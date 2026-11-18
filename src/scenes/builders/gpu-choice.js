@@ -426,6 +426,10 @@ export default function build(scene, emit) {
         playing = false;
         const nextBeat = (beat + 1) % BEAT_T.length;
         cycleT = BEAT_T[nextBeat];
+      } else if (name === 'back') {
+        playing = false;
+        const prevBeat = (beat - 1 + BEAT_T.length) % BEAT_T.length;
+        cycleT = BEAT_T[prevBeat];
       } else if (name === 'budget') {
         const v = Number(arg);
         if (v === 20 || v === 30 || v === 40 || v === 90) {

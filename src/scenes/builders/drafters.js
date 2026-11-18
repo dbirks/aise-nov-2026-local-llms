@@ -170,7 +170,7 @@ export default function build(scene, emit) {
   const famLabels = FAMS.map(f => mkLabel(LABEL[f], AXIS_C + 0.15, 2.62, 0.27));
 
   // ── state ──────────────────────────────────────────────────────────────────────
-  let fam = 'mtp', K = 8, playing = true, phase = 0, t = 0, stepReq = false;
+  let fam = 'mtp', K = 8, playing = true, phase = 0, t = 0, stepReq = false, backReq = false;
   const vis = { mtp: 0, eagle: 0, dflash: 0, dspark: 0, dflash2: 0 };
   const cur = {
     tile: new Float32Array(N).fill(0.001), tick: new Float32Array(N).fill(0.001),
@@ -190,6 +190,10 @@ export default function build(scene, emit) {
       // animates); play = sweep the three beats and loop every ~7.5 s.
       if (stepReq) {
         stepReq = false; playing = false; phase = (phase + 1) % 3;
+        t = DUR[['draft', 'verify', 'hold'][phase]];
+      }
+      if (backReq) {
+        backReq = false; playing = false; phase = (phase + 2) % 3;
         t = DUR[['draft', 'verify', 'hold'][phase]];
       }
       if (playing) { t += dt; if (t >= DUR[now]) { t = 0; phase = (phase + 1) % 3; } }
@@ -367,6 +371,7 @@ export default function build(scene, emit) {
     action(name, arg) {
       if (name === 'play') playing = !playing;
       else if (name === 'step') stepReq = true;
+      else if (name === 'back') backReq = true;
       else if (name === 'drafter') { if (FAMS.includes(String(arg))) { fam = String(arg); phase = 0; t = 0; } }
       else if (name === 'k') { K = Number(arg) === 4 ? 4 : 8; phase = 0; t = 0; }
       else if (name === 'reset') { phase = 0; t = 0; }

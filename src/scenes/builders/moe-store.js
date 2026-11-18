@@ -470,6 +470,17 @@ export default function build(scene, emit) {
           const nextPass = (passIdx + 1) % PASSES;
           t = nextPass * PASS_T + BEATS[0] * PASS_T;
         }
+      } else if (name === 'back') {
+        playing = false;
+        const passIdx = Math.floor(t / PASS_T);
+        const f = (t - passIdx * PASS_T) / PASS_T;
+        const prevBeat = [...BEATS].reverse().find(b => b < f - 0.02);
+        if (prevBeat !== undefined) {
+          t = passIdx * PASS_T + prevBeat * PASS_T;
+        } else {
+          const prevPass = (passIdx - 1 + PASSES) % PASSES;
+          t = prevPass * PASS_T + BEATS[BEATS.length - 1] * PASS_T;
+        }
       } else if (name === 'mode') {
         mode = arg === 'dense' ? 'dense' : 'moe';
         t = PASS_T * 0.54;

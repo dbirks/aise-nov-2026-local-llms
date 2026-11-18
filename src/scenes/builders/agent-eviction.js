@@ -161,7 +161,7 @@ export default function build(scene, emit) {
     });
   }
   function warm() {                                      // prefixes arrive once, no history yet
-    order = []; used = 0; hist = []; beat = 0; acc = 0;
+    order = []; used = 0; hist = []; beat = 0; acc = 0; snaps.length = 0;
     for (let i = 0; i < MAXAG; i++) {
       const a = ag[i];
       a.resident = false; a.slot = -1; a.fill = 1; a.vis = 0.001; a.ex = -9;
@@ -209,10 +209,30 @@ export default function build(scene, emit) {
     return best;
   }
   function beatStep() {
+    snaps.push(snap());                                 // 'back' restores the pool/turn state from here
+    if (snaps.length > 300) snaps.shift();
     const a = due();
     if (a >= 0) { turn(a); return; }
     beat++;                                              // nothing was ready: time passes instead
     for (let k = 0; k < 40; k++) { const b = due(); if (b >= 0) { turn(b); return; } beat++; }
+  }
+
+  // The pool sim is stateful (LRU order, byte usage, per-agent schedules), so 'back' rewinds one
+  // beat by restoring the recorded state rather than trying to invert turn()/evict().
+  const snaps = [];
+  const snap = () => ({
+    beat, used, order: order.slice(), hist: hist.slice(),
+    ag: ag.map(x => [x.resident, x.next, x.every, x.fill, x.bar, x.barT, x.peak, x.ex]),
+  });
+  function rewind() {
+    const s = snaps.pop();
+    if (!s) return;
+    beat = s.beat; used = s.used; order = s.order.slice(); hist = s.hist.slice();
+    s.ag.forEach((v, i) => {
+      const x = ag[i];
+      [x.resident, x.next, x.every, x.fill, x.bar, x.barT, x.peak, x.ex] = v;
+    });
+    layout();
   }
   warm();
 
@@ -296,12 +316,15 @@ export default function build(scene, emit) {
     action(name, arg) {
       if (name === 'play') { playing = !playing; acc = 0; }
       else if (name === 'step') { playing = false; acc = 0; stepBeat = true; }
+      else if (name === 'back') { playing = false; acc = 0; } // stateful sim without undo: back just pauses
+      else if (name === 'back') { playing = false; acc = 0; stepBeat = false; rewind(); }
       else if (name === 'agents') {
         want = [1, 4, 8, 24].includes(Number(arg)) ? Number(arg) : 8;
         warm();
       } else if (name === 'dtype') {
         dtype = String(arg) === 'nvfp4' ? 'nvfp4' : 'fp8';   // same agents, same bytes, more blocks
         hist = [];
+        snaps.length = 0;
         evict();
       }
     },

@@ -268,6 +268,7 @@ export default function build(scene, emit) {
       const v = String(arg);
       if (name === 'play') { playing = !playing; bt = playing ? BEATS[bi].hold - 0.001 : bt; }
       else if (name === 'step') { playing = false; setBeat(bi + 1); }
+      else if (name === 'back') { playing = false; setBeat(bi - 1); }
       // the slide primes every control with its `initial` once on mount: a dial set to the value it
       // already has is that prime (or a no-op click), so it must not stop the auto tour.
       else if (name === 'weights' && WKEYS.includes(v) && v !== wp) { playing = false; wp = v; recompute(); }

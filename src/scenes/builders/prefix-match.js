@@ -2,6 +2,7 @@ import { THREE, lam, ease, emitter } from './_kit.js';
 
 // Toy token positions along x, request lanes along z, KV blocks above the tokens.
 const lanes = [-1.5, 0, 1.5], starts = [0.2, 3, 5.8], loop = 10;
+const BEAT_T = [0.3, 2.2, 3.1, 5, 5.9, 8];        // story beats: step goes forward, back reverses
 const xToken = i => -3.75 + i * 0.5;
 const xBlock = i => xToken(i * 4) + 0.75;
 function label(scene, text, x, y, z, h = 0.38) {
@@ -80,7 +81,8 @@ export default function build(scene, emit) {
     },
     action(name, arg) {
       if (name === 'play') playing = !playing;
-      else if (name === 'step') { playing = false; t = [0.3, 2.2, 3.1, 5, 5.9, 8].find(v => v > t + 0.05) ?? 0.3; }
+      else if (name === 'step') { playing = false; t = BEAT_T.find(v => v > t + 0.05) ?? BEAT_T[0]; }
+      else if (name === 'back') { playing = false; t = [...BEAT_T].reverse().find(v => v < t - 0.05) ?? BEAT_T[BEAT_T.length - 1]; }
       else if (name === 'change') { change = [-1, 3, 9].includes(Number(arg)) ? Number(arg) : -1; t = 3.1; }
       else if (name === 'evict') { evicted = !!arg; t = 3.1; }
     },

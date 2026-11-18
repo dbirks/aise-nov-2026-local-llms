@@ -227,6 +227,18 @@ export default function build(scene, emit) {
     updates++; flash = 1;
     lUpd.setText(`updates ${updates}`);
   }
+  /** replay the seeded updates from the initial grid, so 'back' can undo one truthfully */
+  function weightsAfter(n) {
+    const r0 = rng(1234);
+    for (let i = 0; i < NW; i++) W[i] = r0() * 2 - 1;
+    for (let u = 0; u < n; u++) {
+      const r = rng(0x51ed + u * 7919);
+      for (let i = 0; i < NW; i++) W[i] = Math.max(-1, Math.min(1, W[i] * 0.98 + (r() - 0.5) * 0.18));
+    }
+    for (let i = 0; i < NW; i++) setH(i);
+    updates = n;
+    lUpd.setText(`updates ${updates}`);
+  }
   function tick(dt) {
     p += dt / (mode === 'training' ? BEAT_TRAIN : BEAT_INFER);
     if (p >= 1) {
@@ -318,6 +330,13 @@ export default function build(scene, emit) {
     action(name, arg) {
       if (name === 'play') { playing = !playing; steps = 0; }
       else if (name === 'step') { playing = false; steps = 1; }
+      else if (name === 'back') {
+        // undo the last completed beat: one fewer weight update / one fewer prompt
+        playing = false; steps = 0; p = 0;
+        if (mode === 'training') { if (updates > 0) weightsAfter(updates - 1); }
+        else if (prompt > 1) { prompt--; logits(prompt); }
+        flash = 0;
+      }
       else if (name === 'mode') {
         const m = String(arg) === 'training' ? 'training' : 'inference';
         if (m !== mode) {

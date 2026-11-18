@@ -90,7 +90,8 @@ export default function build(scene, emit) {
     },
     action(name, arg) {
       if (name === 'play') playing = !playing;
-      else if (name === 'step') { beat = (beat + 1) % 6; elapsed = 0; selected = engines[beat]; apply(); }
+      else if (name === 'step') { playing = false; beat = (beat + 1) % 6; elapsed = 0; selected = engines[beat]; apply(); }
+      else if (name === 'back') { playing = false; beat = (beat + 5) % 6; elapsed = 0; selected = engines[beat]; apply(); }
       else if (name === 'engine' && (arg === 'all' || engines.includes(arg))) { selected = arg; apply(); }
       else if (name === 'unknown') { unknown = !!arg; apply(); }
     },

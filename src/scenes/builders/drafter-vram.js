@@ -274,6 +274,11 @@ export default function build(scene, emit) {
         const nx = evs.find(e => e.at > t + 1e-6);
         t = nx ? nx.at + 0.25 : 0;
         prevT = Math.min(prevT, t);
+      } else if (name === 'back') {
+        playing = false;
+        const pv = [...evs].reverse().find(e => e.at < t - 0.26);
+        t = pv ? pv.at + 0.25 : 0;
+        prevT = t;                                        // rewinding must not re-fire a forward beat
       } else if (name === 'mode') {
         mode = MODES[String(arg)] ? String(arg) : 'target-only';
         t = 0; prevT = -1; schedule();

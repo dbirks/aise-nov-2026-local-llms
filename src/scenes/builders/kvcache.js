@@ -107,7 +107,8 @@ export default function build(scene, emit) {
     on: false, tokens: 0, len: 12, stalled: false, stallT: 0, full: false, hold: 0, gap: 0.35 + i * 1.3,
     vis: 0.001, stallAmt: 0, fullAmt: 0,
   }));
-  const rand = (() => { let s = 7; return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; })();
+  let prn = 7;
+  const rand = () => { prn = (prn * 16807) % 2147483647; return (prn - 1) / 2147483646; };
   const newLen = () => 8 + Math.floor(rand() * 24);   // tokens this request will generate
   const cStall = new THREE.Color(0xbcbcbc), cFull = new THREE.Color(0x4a4a4a);
   // one luminance step per request lane, nearest lane darkest, so four lanes stay split in monochrome
@@ -120,6 +121,20 @@ export default function build(scene, emit) {
   const cost = () => LAYERS * BLOCK_F16 * (dtype === 'fp8' ? 0.5 : 1);   // budget per token
   const used = () => lanes.reduce((a, L) => a + L.tokens, 0) * cost();
   const slotCap = () => Math.min(CAPS[cap], SLOTS);
+
+  // 'back' rewinds one decode step. The sim is stateful (arrival timers, lengths, preemption), so
+  // undo restores the lane states recorded before each step instead of trying to invert tick().
+  const snaps = [];
+  const snap = () => ({ prn, lanes: lanes.map(L => [L.on, L.tokens, L.len, L.stalled, L.stallT, L.full, L.hold, L.gap]) });
+  function rewind() {
+    const s = snaps.pop();
+    if (!s) return;
+    prn = s.prn;
+    s.lanes.forEach((v, i) => {
+      const L = lanes[i];
+      [L.on, L.tokens, L.len, L.stalled, L.stallT, L.full, L.hold, L.gap] = v;
+    });
+  }
 
   function setRequests(n) {
     const prev = want;
@@ -134,6 +149,8 @@ export default function build(scene, emit) {
   // so the newest request is the one that runs out of memory. If nothing at all can be allocated,
   // one (the newest starved) request is preempted — its blocks are freed and it comes back later.
   function tick() {
+    snaps.push(snap());
+    if (snaps.length > 600) snaps.shift();
     let u = used(), progressed = false, starved = -1;
     for (let i = 0; i < want; i++) {
       const L = lanes[i];
@@ -229,6 +246,7 @@ export default function build(scene, emit) {
     action(name, arg) {
       if (name === 'play') { playing = !playing; acc = 0; }
       else if (name === 'step') { playing = false; acc = 0; stepReq = true; }
+      else if (name === 'back') { playing = false; acc = 0; stepReq = false; rewind(); }
       else if (name === 'requests') setRequests(Number(arg));
       else if (name === 'dtype') dtype = String(arg) === 'fp8' ? 'fp8' : 'fp16';
       else if (name === 'cap') cap = CAPS[String(arg)] ? String(arg) : '16k';

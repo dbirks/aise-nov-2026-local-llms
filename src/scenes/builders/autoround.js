@@ -83,7 +83,17 @@ export default function build(scene, emit) {
     },
     action(name, arg) {
       if (name === 'play') playing = !playing;
-      else if (name === 'step') { playing = false; if (method === 'autoround') { index = Math.min(50, index + 10); time = index / 50 * 8; } }
+      else if (name === 'step') {
+        playing = false;
+        // one timeline: nearest → optimised rounds 0…50 (the fallback for 'nearest', which has no beats)
+        if (method === 'nearest') { method = 'autoround'; index = 0; time = 0; }
+        else { index = Math.min(50, index + 10); time = index / 50 * 8; }
+      }
+      else if (name === 'back') {
+        playing = false;
+        if (method === 'autoround' && index > 0) { index -= 10; time = index / 50 * 8; }
+        else { method = 'nearest'; index = 0; time = 0; }
+      }
       else if (name === 'method' && (arg === 'nearest' || arg === 'autoround') && arg !== method) { method = arg; index = 0; time = 0; playing = method === 'autoround'; }
       else if (name === 'keep') keep = arg === true;
     },

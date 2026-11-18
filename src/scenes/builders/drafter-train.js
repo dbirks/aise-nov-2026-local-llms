@@ -79,6 +79,7 @@ export default function build(scene, emit) {
     action(name, arg) {
       if (name === 'play') playing = !playing;
       else if (name === 'step') step = true;
+      else if (name === 'back') { playing = false; time = (Math.floor(time + 1e-6) - 1 + 10) % 10; }
       else if (name === 'mode' && (arg === 'teacher' || arg === 'free')) { mode = arg; time = 0; }
       else if (name === 'stage' && (arg === 'pipeline' || arg === 'results')) stage = arg;
       else if (name === 'reset') { time = 0; displayed = 0; }

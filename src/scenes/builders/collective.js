@@ -496,6 +496,10 @@ export default function build(scene, emit) {
         playing = false;
         const next = (beatIdx(t) + 1) % BEATS.length;
         t = beatStart(next) + BEATS[next] * 0.58;
+      } else if (name === 'back') {
+        playing = false;
+        const prev = (beatIdx(t) - 1 + BEATS.length) % BEATS.length;
+        t = beatStart(prev) + BEATS[prev] * 0.58;
       } else if (name === 'drop') {
         drop = typeof arg === 'boolean' ? arg : !drop;
       } else if (name === 'inbound') {

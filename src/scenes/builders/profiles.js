@@ -178,6 +178,7 @@ export default function build(scene, emit) {
     action(name, arg) {
       if (name === 'play') { playing = !playing; beat = 0; }
       else if (name === 'step') { playing = false; pi = (pi + 1) % PK.length; setProfile(PK[pi]); }
+      else if (name === 'back') { playing = false; pi = (pi - 1 + PK.length) % PK.length; setProfile(PK[pi]); }
       else if (name === 'profile') setProfile(String(arg));
     },
   };

@@ -76,7 +76,8 @@ export default function build(scene, emit) {
     },
     action(name, arg) {
       if (name === 'play') playing = typeof arg === 'boolean' ? arg : !playing;
-      else if (name === 'step') { beat = (beat + (Number(arg) || 1) + 4) % 4; clock = 0; }
+      else if (name === 'step') { playing = false; beat = (beat + (Number(arg) || 1) + 4) % 4; clock = 0; }
+      else if (name === 'back') { playing = false; beat = (beat - (Number(arg) || 1) + 4) % 4; clock = 0; }
       else if (name === 'bits' && [2,3,4,8].includes(Number(arg))) { bits = Number(arg); recompute(); }
       else if (name === 'group' && ['tensor','row'].includes(arg)) { group = arg; recompute(); }
       else if (name === 'input' && [1,2].includes(Number(arg))) { input = Number(arg); recompute(); }
