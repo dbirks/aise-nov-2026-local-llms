@@ -1,16 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { PixelOpts, Slide } from './types';
 import { SlideView } from '../layouts';
+import { initialIndex, saveIndex } from './position';
 import './mobile.css';
 
 const W = 1920, H = 1080;
-
-/** Same rule as Deck.indexFromHash: '#/<id>' → slide index, 0 when unknown. */
-function indexFromHash(slides: Slide[]): number {
-  const id = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
-  const i = slides.findIndex(s => s.id === id);
-  return i < 0 ? 0 : i;
-}
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
@@ -42,7 +36,9 @@ const TIP_KEY = 'mb-a2hs-tip-dismissed';
  * scroll a page at a time.
  */
 export function MobileDeck({ slides, pixelOpts }: { slides: Slide[]; pixelOpts: PixelOpts }) {
-  const [current, setCurrent] = useState(() => indexFromHash(slides));
+  const [current, setCurrent] = useState(() => initialIndex(slides));
+  const [drag, setDrag] = useState<{ index: number; y: number } | null>(null);
+  const dragRef = useRef<{ index: number; y: number } | null>(null);
   const [fit, setFit] = useState(measureFit);
   const [tip, setTip] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
@@ -91,7 +87,7 @@ export function MobileDeck({ slides, pixelOpts }: { slides: Slide[]; pixelOpts: 
 
   // Start on the slide named in the hash, before the observer reports its first position.
   useLayoutEffect(() => {
-    pageRefs.current[indexFromHash(slides)]?.scrollIntoView({ block: 'start' });
+    pageRefs.current[current]?.scrollIntoView({ block: 'start' });
     // mount only: later hash changes come from the feed itself
   }, []);
 
@@ -117,6 +113,7 @@ export function MobileDeck({ slides, pixelOpts }: { slides: Slide[]; pixelOpts: 
 
   // Keep the URL in sync (preserving ?mobile=1 and any other query).
   useEffect(() => {
+    saveIndex(current);
     history.replaceState(null, '', location.pathname + location.search + '#/' + slides[current].id);
   }, [slides, current]);
 
@@ -140,6 +137,18 @@ export function MobileDeck({ slides, pixelOpts }: { slides: Slide[]; pixelOpts: 
   }, [current, slides.length]);
 
   const { scale, portrait } = fit;
+  const slideTitle = (slide: Slide) => {
+    if (slide.type === 'title') return slide.headline.replace(/\n/g, ' ');
+    if (slide.type === 'scene' || slide.type === 'splat') return slide.caption.title;
+    return slide.title || slide.id;
+  };
+  const updateDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const y = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
+    const next = { index: Math.round((y / rect.height) * (slides.length - 1)), y };
+    dragRef.current = next;
+    setDrag(next);
+  };
 
   return (
     <div className="mb-feed" ref={feedRef}>
@@ -160,6 +169,25 @@ export function MobileDeck({ slides, pixelOpts }: { slides: Slide[]; pixelOpts: 
           )}
         </section>
       ))}
+      <div className="mb-scrub" role="slider" aria-label="Slide navigation"
+        aria-valuemin={1} aria-valuemax={slides.length} aria-valuenow={(drag?.index ?? current) + 1}
+        onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); updateDrag(event); }}
+        onPointerMove={event => { if (event.currentTarget.hasPointerCapture(event.pointerId)) updateDrag(event); }}
+        onPointerUp={event => {
+          updateDrag(event);
+          const target = dragRef.current?.index;
+          if (target !== undefined) pageRefs.current[target]?.scrollIntoView({ block: 'start', behavior: 'auto' });
+          dragRef.current = null;
+          setDrag(null);
+        }}
+        onPointerCancel={() => { dragRef.current = null; setDrag(null); }}>
+        <div className="mb-scrub-track" />
+        <div className="mb-scrub-thumb" style={{ top: drag ? `${drag.y}px` : `${slides.length > 1 ? current / (slides.length - 1) * 100 : 0}%` }} />
+        {drag && <div className="mb-scrub-bubble" style={{ top: `clamp(38px, ${drag.y}px, calc(100% - 38px))` }}>
+          <div>{pad2(drag.index + 1)} / {slides.length}</div>
+          <div>{slideTitle(slides[drag.index])}</div>
+        </div>}
+      </div>
       {tip && (
         <button className="mb-tip" onClick={dismissTip}>
           For true full screen: Share → Add to Home Screen, then open it from the icon. ×

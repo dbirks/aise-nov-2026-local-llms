@@ -4,16 +4,11 @@ import { SlideView } from '../layouts';
 import { Overview } from './Overview';
 import { PresenterPanel } from './PresenterPanel';
 import { MobileDeck } from './MobileDeck';
+import { initialIndex, saveIndex } from './position';
 import './deck.css';
 
 const W = 1920, H = 1080;
 const DEFAULT_OPTS: PixelOpts = { pixel: 1.5, tones: '16', dither: true };
-
-function indexFromHash(slides: Slide[]): number {
-  const id = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
-  const i = slides.findIndex(s => s.id === id);
-  return i < 0 ? 0 : i;
-}
 
 /** True when `?mobile=1` is in the URL (lets you test the touch feed on a desktop browser). */
 function forcedMobile(): boolean {
@@ -43,7 +38,7 @@ function loadOpts(): PixelOpts {
  * ← → first go to the active slide's step handler (scenes step their animation), then change slide.
  */
 export function Deck({ slides }: { slides: Slide[] }) {
-  const [index, setIndex] = useState(() => indexFromHash(slides));
+  const [index, setIndex] = useState(() => initialIndex(slides));
   const [scale, setScale] = useState(1);
   const [overview, setOverview] = useState(false);
   const [panel, setPanel] = useState(false);
@@ -60,6 +55,7 @@ export function Deck({ slides }: { slides: Slide[] }) {
     const n = Math.max(0, Math.min(slides.length - 1, i));
     stepHandler.current = null;
     setIndex(n);
+    saveIndex(n);
     history.replaceState(null, '', `#/${slides[n].id}`);
   }, [slides]);
 
@@ -67,7 +63,13 @@ export function Deck({ slides }: { slides: Slide[] }) {
     const fit = () => setScale(Math.min(window.innerWidth / W, window.innerHeight / H));
     fit();
     window.addEventListener('resize', fit);
-    const onHash = () => setIndex(indexFromHash(slides));
+    const onHash = () => {
+      try {
+        const id = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
+        const next = slides.findIndex(slide => slide.id === id);
+        if (next >= 0) { setIndex(next); saveIndex(next); }
+      } catch { /* malformed hash: keep the current slide */ }
+    };
     window.addEventListener('hashchange', onHash);
     return () => { window.removeEventListener('resize', fit); window.removeEventListener('hashchange', onHash); };
   }, [slides]);
