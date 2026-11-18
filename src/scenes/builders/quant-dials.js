@@ -260,7 +260,7 @@ export default function build(scene, emit) {
       if (scalePlate.visible) {
         scalePlate.position.set(WX, hW + UNIT * 0.25 + 0.02, 0);
         scalePlate.scale.set(2.1, UNIT * 0.5, 1.6);
-        blockLabel.position.set(WX + 1.4, hW + 0.16, 0.55);
+        blockLabel.position.set(WX + 1.5, hW - 0.22, 1.0);
       }
       blockLabel.visible = scalePlate.visible;
 

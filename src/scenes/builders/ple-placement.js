@@ -24,7 +24,8 @@ export default function build(scene, emit) {
   label('layer 2', -2.65, -2.28, 0, 0.46);
   block(-2.65, -1.60, 0.3, 1.65, 0.20, 0.5, dark);
   const table = block(0, -0.35, 0.3, 2.35, 0.98, 0.35, dark);
-  const tl = label('47.68 GiB FP8', 0, -0.35, 0.65, 0.46, g, '#f2f2f2');
+  const tl = label('47.68 GiB', 0, -0.18, 0.65, 0.46, g, '#f2f2f2');
+  const tlFormat = label('FP8', 0, -0.57, 0.65, 0.46, g, '#f2f2f2');
   const cache = new THREE.Group(); g.add(cache);
   block(0, -1.35, 0.45, 2.15, 0.46, 0.2, mid, cache);
   label('hot rows cache', 0, -1.35, 0.72, 0.45, cache, '#f2f2f2');
@@ -38,6 +39,7 @@ export default function build(scene, emit) {
       const x = xs[tier];
       table.position.x += (x - table.position.x) * ease(dt, 6);
       tl.position.x = table.position.x;
+      tlFormat.position.x = table.position.x;
       cache.visible = tier === 'ssd';
       const duration = tier === 'vram' ? 1 : tier === 'ram' ? 2 : 3;
       for (let i = 0; i < 3; i++) {

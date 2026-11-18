@@ -34,7 +34,8 @@ export default function build(scene, emit) {
   function setLabel(l, text, y) { // rebuild the sprite only when text/row changes
     if (l.s && l.text === text) { l.s.position.y = y; return; }
     if (l.s) { root.remove(l.s); l.s.material.map.dispose(); l.s.material.dispose(); }
-    l.text = text; l.s = label(text, 2.7, y, 0.3, '#111111', 0.4);
+    l.text = text; l.s = label(text, 0, y, 0.3, '#111111', 0.4);
+    l.s.position.x = LX + l.s.scale.x / 2;
   }
   function pattern(kind) { // 'blocks-big' | 'blocks-fine' | 'hatch' -> tileable canvas texture
     const c = document.createElement('canvas'); c.width = c.height = 40;
@@ -59,7 +60,7 @@ export default function build(scene, emit) {
   const shell = edge(); shell.scale.set(CW, CAP * U, DEPTH); shell.position.set(X, Y0 + CAP * U / 2, 0);
   root.add(ceil, floor);
   label("32 toy units", X, Y0 + CAP * U + 0.05, 0.26, "#efefe8", 0.05);
-  label('VRAM budget', X - CW / 2 - 1.5, Y0 - 0.45, 0.3);
+  label('VRAM budget', X, Y0 - 0.55, 0.3);
   for (const n of [8, 16, 24]) {
     const tick = new THREE.Mesh(box, lam(0x777777)); tick.scale.set(0.25, 0.03, 0.06);
     tick.position.set(X - CW / 2 - 0.16, Y0 + n * U, 0); root.add(tick);
@@ -82,7 +83,7 @@ export default function build(scene, emit) {
   const cap = new THREE.Mesh(box, lam(0x111111)); root.add(cap);
 
   // ── right-hand labels (de-collided every frame) ─────────────────────────
-  const LX = 2.7, GAP = 0.55;
+  const LX = 2.15, GAP = 0.56;
   const mk = () => ({ s: null, text: '', lead: new THREE.Line(
     new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), thinMat), w: 2.4 });
   const labels = [mk(), mk(), mk(), mk(), mk(), mk()]; // weights ×2, kvs ×2, free, doesn't fit
@@ -133,10 +134,10 @@ export default function build(scene, emit) {
       cap.scale.set(CW + 0.3, 0.06, DEPTH + 0.08); cap.position.set(X, Math.min(dkTop, TOP) + 0.03, 0);
 
       const rows = [
-        [labels[0], Y0 + TW * U / 2, `target weights · ${TW}`, true],
-        [labels[1], Y0 + (TW + DW / 2) * U, `drafter weights · ${DW}`, true],
+        [labels[0], Y0 + TW * U / 2, `target wt · ${TW}`, true],
+        [labels[1], Y0 + (TW + DW / 2) * U, `draft wt · ${DW}`, true],
         [labels[2], (Y0 + (TW + DW) * U + kvTop) / 2, `target kv · ${t.raw}`, true],
-        [labels[3], Math.min((kvTop + dkTop) / 2, TOP + overH + 0.4), `drafter kv · ${t.d}${t.capped ? ' · capped' : ''}`, true],
+        [labels[3], Math.min((kvTop + dkTop) / 2, TOP + overH + 0.4), `draft kv · ${t.d}${t.capped ? ' · capped' : ''}`, true],
         [labels[4], Math.min(dkTop, TOP) + freeH / 2, `free · ${t.free}`, showFree],
         [labels[5], TOP + overH / 2, "doesn't fit", t.over > 0.02],
       ].sort((a, b) => a[1] - b[1]);
@@ -148,7 +149,7 @@ export default function build(scene, emit) {
         setLabel(l, text, yy); l.s.visible = true;
         l.lead.geometry.setFromPoints([
           new THREE.Vector3(X + CW / 2 + 0.05, ideal, 0.45),
-          new THREE.Vector3(2.7 - (l.s ? l.s.scale.x : 2) / 2 - 0.08, yy, 0.45),
+          new THREE.Vector3(LX - 0.08, yy, 0.45),
         ]);
       }
 

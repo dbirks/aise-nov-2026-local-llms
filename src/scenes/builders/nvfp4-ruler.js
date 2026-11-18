@@ -194,9 +194,9 @@ export default function build(scene, emit) {
   label('+6·s', xFromE2M1(6), -0.22, 2.42, 0.30);
 
   label('16 weight lanes', -2.55, 0.45, -2.55, 0.32);
-  label('hollow: raw weight', -2.35, 1.55, -1.65, 0.31);
-  label('solid: E2M1 tick', 0.35, 1.55, -1.65, 0.31);
-  label('residual |ŵ − w|', X_RESID, 2.75, 0, 0.32);
+  label('hollow: raw weight', -1.8, 3.35, -1.65, 0.31);
+  label('solid: E2M1 tick', 0.25, 2.55, -1.65, 0.31);
+  label('residual |ŵ − w|', X_RESID - 0.5, 1.75, 0, 0.32);
 
   const dynGroup = new THREE.Group();
   scene.add(dynGroup);
@@ -207,7 +207,7 @@ export default function build(scene, emit) {
       s.material.map.dispose();
       s.material.dispose();
     }
-    label(`scale ${m.sBlock.toFixed(1)} × 0.001`, -0.45, 2.15, -1.65, 0.33, dynGroup);
+    label(`scale ${m.sBlock.toFixed(1)} × 0.001`, 0.0, 4.15, -1.65, 0.33, dynGroup);
     label(`6·s = ${(6 * m.sEff).toFixed(3)}`, xFromE2M1(6) - 0.15, -0.58, 2.42, 0.29, dynGroup);
   }
 

@@ -21,7 +21,7 @@ export default function build(scene, emit) {
     const g = new THREE.Group(); group.add(g); const h = d.bw / 1800 * 4.4, w = d.cap / 128 * 1.1;
     const mesh = new THREE.Mesh(box, lam(0x333333)); mesh.scale.set(w,h,.48); mesh.position.set(d.x,h/2,d.z); g.add(mesh);
     const edge = new THREE.LineSegments(new THREE.EdgesGeometry(box), new THREE.LineBasicMaterial({color:0x111111})); edge.scale.copy(mesh.scale); edge.position.copy(mesh.position); g.add(edge);
-    label(d.name,d.x,h+.55,d.z,.58);
+    label(d.name, d.key === 'gpu' ? d.x + 1.1 : d.x, d.key === 'gpu' ? h - 0.45 : h + .55, d.z, .58);
     return {d, mesh, edge};
   });
   return { view:{target:[0,2,0],radius:40,theta:.45,phi:1.0,size:4.4}, update(dt) {

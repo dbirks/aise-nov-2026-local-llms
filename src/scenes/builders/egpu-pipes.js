@@ -143,7 +143,7 @@ export default function build(scene, emit) {
   );
   boxCage.position.set(0, 0.03, 0);
   gpuBox.add(boxCage);
-  scene.add(makeLabel('GPU box', 1.70, 1.88, -0.55, 0.36));
+  scene.add(makeLabel('GPU box', 2.65, 2.02, -0.55, 0.36));
 
   // VRAM block inside left side of GPU box (x = +0.28)
   const vramBlock = new THREE.Group();
@@ -153,7 +153,7 @@ export default function build(scene, emit) {
   for (const ry of [-0.46, 0, 0.46]) {
     addBox(vramBlock, 0.75, 0.05, 1.35, 0x161616, null, 0, ry, 0);
   }
-  scene.add(makeLabel('VRAM', 0.28, 1.24, -0.15, 0.34));
+  scene.add(makeLabel('VRAM', 0.28, 0.99, 0.8, 0.34));
 
   // Compute block inside right side of GPU box (x = +3.08)
   const computeBlock = new THREE.Group();
@@ -204,8 +204,8 @@ export default function build(scene, emit) {
   ));
 
   const tbLabel = makeDynamicLabel(
-    ['Thunderbolt 4 · PCIe tunnel', '32 Gb/s (~4 GB/s max)'],
-    -1.32, 1.88, 0, 0.32,
+    ['Thunderbolt 4', 'PCIe tunnel · 32 Gb/s', '(~4 GB/s max)'],
+    -1.45, 2.22, 0, 0.32,
   );
   scene.add(tbLabel.sprite);
 
@@ -272,8 +272,8 @@ export default function build(scene, emit) {
     targetTbR = pipeRadius(isTb5 ? BW_TB5 : BW_TB4);
     tbLabel.set(
       isTb5
-        ? ['Thunderbolt 5 · PCIe tunnel', '64 Gb/s (~8 GB/s max)']
-        : ['Thunderbolt 4 · PCIe tunnel', '32 Gb/s (~4 GB/s max)'],
+        ? ['Thunderbolt 5', 'PCIe tunnel · 64 Gb/s', '(~8 GB/s max)']
+        : ['Thunderbolt 4', 'PCIe tunnel · 32 Gb/s', '(~4 GB/s max)'],
     );
   }
   applyLink();
