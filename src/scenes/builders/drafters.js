@@ -41,14 +41,15 @@ const RUN_Y = Y_RAIL - 0.22, RUN_X0 = X0 - TILE / 2 - 0.07;
 const CONF_Y = Y_TIL + TILE / 2 + 0.06;         // confidence bars (dspark) start here
 const XT = XC + 0.9;                            // eagle-3 tower x — deliberately detached
 const DUR = { draft: 3.1, verify: 2.5, hold: 1.9 };
-const FAMS = ['mtp', 'eagle', 'dflash', 'dspark'];
-const NAME = { mtp: 'mtp', eagle: 'eagle-3', dflash: 'dflash', dspark: 'dspark' };
-const LABEL = { mtp: 'mtp heads', eagle: 'eagle-3 tower', dflash: 'dflash block', dspark: 'dspark block' };
+const FAMS = ['mtp', 'eagle', 'dflash', 'dspark', 'dflash2'];
+const NAME = { mtp: 'mtp', eagle: 'eagle-3', dflash: 'dflash', dspark: 'dspark', dflash2: 'dflash2' };
+const LABEL = { mtp: 'mtp heads', eagle: 'eagle-3 tower', dflash: 'dflash block', dspark: 'dspark block', dflash2: 'dflash2 block' };
 const COST = {
   mtp: k => `${k} chained head steps`,
   eagle: k => `${k} draft tower steps`,
   dflash: () => '1 draft pass',
   dspark: () => '1 draft pass + markov',
+  dflash2: () => '1 draft pass + selector',
 };
 const acceptOf = k => (k === 8 ? 5 : 3);         // illustrative accepted prefix, same for all
 const confOf = (i, k) => {                       // illustrative confidence scores (dspark)
@@ -124,12 +125,18 @@ export default function build(scene, emit) {
   const slabDrops = inst(N, 0x707070);
   const markov = inst(N, 0x101010);                                    // slot i-1 → slot i (dspark)
   const conf = inst(N, 0xffffff);                                      // confidence bar per slot
+  // Illustrative causal window and candidate path, not literal tensor geometry.
+  const kernel = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(PITCH * 3, 0.7, 0.7)),
+    new THREE.LineBasicMaterial({ color: 0x171717 }));
+  scene.add(kernel);
+  const convLinks = inst(N * 2, 0x222222);
+  const candidates = inst(N * 3, 0xffffff);
 
   // ── labels (short; the rest of the labelling is in the readout). The caption card
   //    covers the lower-left of the slide, so labels stay high or to the right.
-  const mkLabel = (text, x, y, h = 0.22) => {
+  const mkLabel = (text, x, y, h = 0.22, fontSize = 54) => {
     const cv = document.createElement('canvas'), g = cv.getContext('2d');
-    const font = 'bold 54px ui-monospace, "DejaVu Sans Mono", monospace';
+    const font = `bold ${fontSize}px ui-monospace, "DejaVu Sans Mono", monospace`;
     g.font = font;
     const w = Math.max(24, Math.ceil(g.measureText(text).width)) + 14;
     cv.width = w; cv.height = 72;
@@ -157,11 +164,14 @@ export default function build(scene, emit) {
   const branchLabel = mkLabel('tree branch', xOf(BR) + 0.4, Y_TIL + 0.68, 0.21);
   const confLabel = mkLabel('confidence', xOf(5) + 0.15, 1.44, 0.21);
   const passLabel = mkLabel('one draft pass', AXIS_C + 0.55, Y_BAND - 0.62, 0.22);
+  const convLabel = mkLabel('local conv', AXIS_C - 0.5, 1.25, 0.35, 64);
+  const selectorLabel = mkLabel('selector', AXIS_C + 1.0, 1.25, 0.35, 64);
+  const experimentalLabel = mkLabel('experimental', AXIS_C + 2.0, 2.2, 0.35, 64);
   const famLabels = FAMS.map(f => mkLabel(LABEL[f], AXIS_C + 0.15, 2.62, 0.27));
 
   // ── state ──────────────────────────────────────────────────────────────────────
   let fam = 'mtp', K = 8, playing = true, phase = 0, t = 0, stepReq = false;
-  const vis = { mtp: 0, eagle: 0, dflash: 0, dspark: 0 };
+  const vis = { mtp: 0, eagle: 0, dflash: 0, dspark: 0, dflash2: 0 };
   const cur = {
     tile: new Float32Array(N).fill(0.001), tick: new Float32Array(N).fill(0.001),
     cell: new Float32Array(CELLS), well: new Float32Array(N).fill(0xcd),
@@ -187,13 +197,14 @@ export default function build(scene, emit) {
       const v = phase === 0 ? 0 : phase === 1 ? Math.min(1, t / DUR.verify) : 1;    // the ONE target pass
       const k = ease(dt, 8);
       const a = acceptOf(K), seq = fam === 'mtp' || fam === 'eagle';
-      const block = fam === 'dflash' || fam === 'dspark';
+      const block = fam === 'dflash' || fam === 'dspark' || fam === 'dflash2';
       for (const f of FAMS) vis[f] += ((fam === f ? 1 : 0.001) - vis[f]) * ease(dt, fam === f ? 8 : 13);
-      const vMtp = vis.mtp, vEa = vis.eagle, vBl = block ? Math.max(vis.dflash, vis.dspark) : 0.001;
+      const vMtp = vis.mtp, vEa = vis.eagle, vBl = block ? Math.max(vis.dflash, vis.dspark, vis.dflash2) : 0.001;
 
       // draft front: K discrete steps (mtp / eagle-3) vs one continuous slab sweep (block)
       const step = p * K;
-      const cov = X0 - TILE + p * (K * PITCH + TILE);
+      const blockP = fam === 'dflash2' ? Math.min(1, p / 0.42) : p;
+      const cov = X0 - TILE + blockP * (K * PITCH + TILE);
       const pres = i => (seq ? ss((step - i - 0.35) / 0.62) : ss((cov - xOf(i) + TILE * 0.9) / (TILE * 1.1)));
       const xV = SLAB_L + v * AXIS_SPAN;
 
@@ -280,7 +291,7 @@ export default function build(scene, emit) {
       branchLabel.visible = cur.branch > 0.6;
 
       // ── DFlash / DSpark: one broad slab fills the K masked slots in one pass ─────
-      const sw = (K * PITCH - 0.05) * p * vBl;
+      const sw = (K * PITCH - 0.05) * blockP * vBl;
       const sx = X0 - TILE / 2 + 0.03;
       slab.scale.set(Math.max(sw, 0.001), vBl, vBl);
       slab.position.x = sx + Math.max(sw, 0.001) / 2;
@@ -310,6 +321,38 @@ export default function build(scene, emit) {
       conf.visible = vis.dspark > 0.03;
       confLabel.visible = vis.dspark > 0.5;
       confLabel.position.x = xOf(K - 1) - 0.75;
+
+      // A moving three-position window summarizes causal local mixing; the real
+      // convolutions occur within layers, not as a separate post-draft pass.
+      const isF2 = fam === 'dflash2' && vis.dflash2 > 0.03;
+      const cp = c01((p - 0.42) / 0.28);
+      const selecting = c01((p - 0.70) / 0.30) * K;
+      const windowIndex = Math.min(K - 1, Math.floor(cp * K));
+      kernel.visible = isF2 && p >= 0.42 && p < 0.70;
+      kernel.position.set(xOf(windowIndex) - PITCH, Y_TIL, 0);
+      convLabel.visible = kernel.visible;
+      selectorLabel.visible = isF2 && p >= 0.70;
+      experimentalLabel.visible = isF2;
+      for (let i = 0; i < N; i++) {
+        for (let j = 1; j <= 2; j++) {
+          const on = kernel.visible && i === windowIndex && i >= j;
+          P.set(xOf(i) - j * PITCH / 2, Y_TIL, 0.38);
+          S.set(on ? j * PITCH : 0.001, 0.045, 0.045);
+          convLinks.setMatrixAt(i * 2 + j - 1, M.compose(P, Q, S));
+        }
+        const chosen = ss((selecting - i) * 2);
+        for (let j = 0; j < 3; j++) {
+          const visible = isF2 && i < K && p >= 0.42;
+          const scale = visible ? (j === 0 ? 1 : 1 - chosen) : 0.001;
+          P.set(xOf(i), Y_TIL + 0.7 * (1 - (j === 0 ? chosen : 0)), -0.35 + j * 0.3);
+          S.set(TILE * 0.8 * Math.max(scale, 0.001), 0.09 * Math.max(scale, 0.001), 0.2 * Math.max(scale, 0.001));
+          candidates.setMatrixAt(i * 3 + j, M.compose(P, Q, S));
+          candidates.setColorAt(i * 3 + j, tmp.setHex(j === 0 ? 0x101010 : 0x999999));
+        }
+      }
+      convLinks.instanceMatrix.needsUpdate = true;
+      candidates.instanceMatrix.needsUpdate = true;
+      if (candidates.instanceColor) candidates.instanceColor.needsUpdate = true;
 
       tiles.instanceMatrix.needsUpdate = true;
       if (tiles.instanceColor) tiles.instanceColor.needsUpdate = true;
