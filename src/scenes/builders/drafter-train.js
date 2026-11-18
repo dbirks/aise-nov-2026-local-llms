@@ -18,7 +18,7 @@ export default function build(scene, emit) {
   };
   const xs = [-4.2, -2.55, -0.9, 0.75, 2.4, 4.05];
   const names = ['agent trajectories', 'target rollouts', 'hidden states', 'train drafter', 'convert / check', 'serve in vLLM'];
-  names.forEach((n, i) => label(n, xs[i], -0.35, 0.25));
+  names.forEach((n, i) => label(n, xs[i], i % 2 === 0 ? -0.25 : -1.55, 0.3));
   box(0, -1.05, 10, 0.08, 1.2, mid);
   for (let j = 0; j < 3; j++) box(xs[0] + j * 0.08, -0.76 + j * 0.12, 0.8, 0.08, 0.6, dark);
   box(xs[1], -0.65, 1, 0.65, 0.55); label('target', xs[1], -0.65, 0.22).material.color.setHex(0xffffff);
@@ -31,12 +31,12 @@ export default function build(scene, emit) {
   box(xs[5] - 0.3, -0.7, 0.52, 0.55, 0.5); box(xs[5] + 0.35, -0.7, 0.38, 0.38, 0.5, mid);
   label('target + draft', xs[5], -1.35, 0.23);
   const packet = box(xs[0], -0.9, 0.15, 0.15, 0.18);
-  label('reference tokens', 2.3, 2.35, 0.27); label('draft slots', 2.3, 1.05, 0.27);
+  label('reference tokens', 2.3, 2.4, 0.36); label('draft slots', 2.3, 1.02, 0.36);
   const slots = [], links = [];
   for (let i = 0; i < 6; i++) {
     const x = 0.8 + i * 0.6;
-    box(x, 2.02, 0.35, 0.18, 0.16, mid);
-    const tile = box(x, 1.43, 0.4, 0.34, 0.18); slots.push(tile);
+    box(x, 2.02, 0.455, 0.234, 0.208, mid);
+    const tile = box(x, 1.43, 0.52, 0.442, 0.234); slots.push(tile);
     const link = box(x, 1.74, 0.045, 0.36, 0.08); links.push(link);
   }
   const marks = [];
@@ -56,7 +56,7 @@ export default function build(scene, emit) {
   const figures = [label('546k rows · 2d16h', 2.1, -3.05, 0.23), label('215,154 rows · 1.617', 4.2, -3.38, 0.22), label('baseline ~1.66', 4.2, -3.7, 0.22)];
   let mode = 'teacher', stage = 'pipeline', playing = true, time = 0, step = false, displayed = 0;
   return {
-    view: { target: [0, -0.55, 0], radius: 40, theta: 0.05, phi: 1.5, size: 4.45 },
+    view: { target: [0, -0.55, 0], radius: 40, theta: 0.05, phi: 0.95, size: 4.2 },
     update(dt) {
       if (step) { time = (Math.floor(time) + 1) % 10; step = false; playing = false; }
       if (playing) time = (time + dt) % 10;
