@@ -151,6 +151,17 @@
   padding-bottom: 14px;
 }
 .sl-list-num { width: 90px; color: var(--ink); }
+/* sub-bullets: smaller text, hollow square, under the parent line */
+.sl-list-subs { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; font-size: 44px; color: var(--ink-2); }
+.sl-list-sub { display: flex; }
+.sl-list-sub-mark {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 22px 22px 0 0;
+  border: 4px solid var(--ink-2);
+  box-sizing: border-box;
+}
 /* square marker: one pixel-block, centred on the first line (56px × 1.35 line height) */
 .sl-list-square {
   flex: none;

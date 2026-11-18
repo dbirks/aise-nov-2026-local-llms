@@ -93,6 +93,8 @@ export interface ListSlide extends SlideBase {
   header: [string, string];
   title: string;
   items: string[];
+  /** sub-bullets shown under item i, e.g. { 0: ['detail'] } */
+  subs?: Record<number, string[]>;
   /** row marker: '01', '02' … (default) or a small square */
   marker?: 'number' | 'square';
 }
