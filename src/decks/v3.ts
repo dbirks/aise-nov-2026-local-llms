@@ -1,6 +1,6 @@
 import type { Slide } from '../deck/types';
 import { v } from '../slides/v2';
-import { CHAPTERS, chip, head } from '../slides/v3/_ch';
+import { CHAPTERS, SHORT, chip, head } from '../slides/v3/_ch';
 import { COPY, DROP } from '../slides/v3/copy';
 import { EXTRA } from '../slides/v3/extra';
 
@@ -40,17 +40,8 @@ const deck: Slide[] = [
     header: ['', 'AISE · November 2026'],
     headline: 'Configuring\nLocal LLMs',
     headlineSize: 215,
-    // short labels so the list fits beside the headline; full questions are on the dividers
-    chapters: [
-      ['01', 'Why run a local model?'],
-      ['02', 'From Ollama to engines'],
-      ['03', 'Fitting a model on your GPU'],
-      ['04', 'More context'],
-      ['05', 'Several agents at once'],
-      ['06', 'Faster generation'],
-      ['07', 'Worth experimenting with'],
-      ['08', 'Sharing local models'],
-    ],
+    // built from CHAPTERS so it always matches the dividers; Opening and Close are left off
+    chapters: CHAPTERS.slice(1, -1).map(([n, t]) => [n, SHORT[n] ?? t] as [string, string]),
   },
   ...ids(0, 'open'),
   section(1),
@@ -82,6 +73,10 @@ export const slides: Slide[] = deck.map((s, i) => {
   const page = `${i + 1} / ${deck.length}`;
   if (out.header) out.header = [out.header[0], page];
   else out.page = page;
-  if (out.type === 'list') out.marker = 'square';
+  if (out.type === 'list') {
+    out.marker = 'square';
+    // speaker: list lines read as phrases, no full stop at the end
+    out.items = out.items.map(t => t.replace(/\.$/, ''));
+  }
   return out as Slide;
 });

@@ -12,6 +12,15 @@ export const CHAPTERS: [string, string][] = [
   ['08', 'Sharing local models'],
   ['09', 'Close'],
 ];
+/** Shorter labels for the title-slide list (the full question is on each divider). Same order as CHAPTERS. */
+export const SHORT: Record<string, string> = {
+  '02': 'From Ollama to engines',
+  '03': 'Fitting a model on your GPU',
+  '04': 'More context',
+  '05': 'Several agents at once',
+  '06': 'Faster generation',
+  '07': 'Worth experimenting with',
+};
 export const LAST = CHAPTERS[CHAPTERS.length - 1][0];
 export const chip = (n: number) => `${CHAPTERS[n][0]} — ${CHAPTERS[n][1]}`;
 /** Running header: the chapter we're in on the left (the page number is filled in by the deck). */

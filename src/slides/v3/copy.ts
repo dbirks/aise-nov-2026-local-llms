@@ -31,10 +31,10 @@ export const COPY: Record<string, Patch> = {
   'why-cost': {
     title: 'Pricing and limits can change',
     items: [
-      'GitHub Copilot’s switch from per-request billing to token-based credits made me think harder about long agent sessions.',
-      'I still use hosted models, but I wanted another option if pricing or limits changed.',
+      'GitHub Copilot’s switch from per-request billing to token-based credits',
+      'Heavily subsidized tokens are unlikely to last forever',
     ],
-    notes: 'evidence: SPEAKER OBSERVATION + documented product change. Copilot moved to token-based GitHub AI Credits from 2026-06-01 (github.blog, 2026-04-27; docs.github.com copilot billing). Do not imply the client plan switched that day.',
+    notes: 'evidence: SPEAKER OPINION (line 2) + documented product change (line 1). Copilot moved to token-based GitHub AI Credits from 2026-06-01 (github.blog, 2026-04-27; docs.github.com copilot billing). Do not imply the client plan switched that day.',
   },
   'why-independence': {
     title: 'Know exactly what you’re running',

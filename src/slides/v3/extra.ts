@@ -12,8 +12,7 @@ export const EXTRA: Record<string, Slide> = {
     [
       'Pricing: no per-token bill or shifting limits.',
       'Stability: an older model you depend on won’t be taken away.',
-      'No surprises: the quantization won’t change under the hood without you knowing.',
-      'Downtime: if it’s down, it’s because you took it down.',
+      'Fewer surprises: the quantization won’t change under the hood without you knowing',
     ],
     'evidence: SPEAKER OPINION. Overview of chapter 01; the slides after it take each point in turn.',
   ),
