@@ -248,7 +248,7 @@ export default function build(scene, emit) {
   function enter(i) { gl[BEATS[i].hi] = 1; }
 
   return {
-    view: { target: [0.2, -0.25, 0], radius: 40, theta: 0.34, phi: 1.02, size: 1.75 },
+    view: { target: [0.1, -0.25, 0], radius: 40, theta: 0.34, phi: 1.02, size: 1.95 },
 
     update(dt) {
       clock += dt;

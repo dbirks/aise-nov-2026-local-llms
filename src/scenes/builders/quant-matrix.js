@@ -52,9 +52,9 @@ export default function build(scene, emit) {
       levels.add(new THREE.Line(geometry, levelMat));
     }
     if (codeLabel) { layout.remove(codeLabel); codeLabel.material.map.dispose(); codeLabel.material.dispose(); }
-    codeLabel = label(`toy int${bits} [${-qmax-1},${qmax}] × scale`, 1.3, -1.45, 0, 0.3);
+    codeLabel = label(`toy int${bits} [${-qmax-1},${qmax}] × scale`, 1.9, -1.45, 0, 0.3);
   }
-  label('not nvfp4', 1.3, -1.85, 0, 0.3);
+  label('not nvfp4', 1.9, -1.85, 0, 0.3);
   recompute();
   return {
     view: { target: [-0.15, 0, 0], radius: 40, theta: 0.13, phi: 1.12, size: 2.6 },
