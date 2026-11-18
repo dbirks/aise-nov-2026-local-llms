@@ -3,7 +3,7 @@ import { THREE, lam, ease, emitter } from './_kit.js';
 function makeLabel(text, x, y, z, height = 0.34) {
   const canvas = document.createElement('canvas');
   const g = canvas.getContext('2d');
-  const font = 'bold 68px ui-monospace, "DejaVu Sans Mono", monospace';
+  const font = 'bold 72px ui-monospace, "DejaVu Sans Mono", monospace';
   g.font = font;
   canvas.width = Math.max(48, Math.ceil(g.measureText(text).width) + 24);
   canvas.height = 88;
@@ -17,6 +17,7 @@ function makeLabel(text, x, y, z, height = 0.34) {
   const sprite = new THREE.Sprite(
     new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }),
   );
+  height = Math.max(height, .45);
   sprite.scale.set(height * (canvas.width / canvas.height), height, 1);
   sprite.position.set(x, y, z);
   sprite.renderOrder = 10;
@@ -49,7 +50,8 @@ function makeDynamicLabel(initial, x, y, z, height = 0.42) {
     sprite.material.map?.dispose();
     sprite.material.map = tex;
     sprite.material.needsUpdate = true;
-    sprite.scale.set(height * (canvas.width / canvas.height), height, 1);
+    height = Math.max(height, .45);
+  sprite.scale.set(height * (canvas.width / canvas.height), height, 1);
   };
   set(initial);
   return { sprite, set };
@@ -285,13 +287,8 @@ export default function build(scene, emit) {
       else if (name === 'phase' && (arg === 'load' || arg === 'decode')) {
         phase = arg;
         applyPhase();
-      } else if (name === 'step') {
-        if (phase === 'load') {
-          loadClock = loadClock >= 7.8 ? 0 : loadClock + 1.6;
-        } else {
-          kvCount = kvCount >= maxKv ? 1 : kvCount + 1;
-          decodeClock = 0.5;
-        }
+      } else if (name === 'step' || name === 'back') {
+        playing = false; phase = phase === 'load' ? 'decode' : 'load'; applyPhase();
       }
     },
   };

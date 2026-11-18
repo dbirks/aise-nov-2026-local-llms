@@ -39,7 +39,7 @@ function makeLabel(lines, x, y, z, height = 0.32) {
   const arr = Array.isArray(lines) ? lines : [lines];
   const canvas = document.createElement('canvas');
   const g = canvas.getContext('2d');
-  const font = 'bold 66px ui-monospace, "DejaVu Sans Mono", monospace';
+  const font = 'bold 72px ui-monospace, "DejaVu Sans Mono", monospace';
   g.font = font;
   const maxW = Math.max(...arr.map(t => g.measureText(t).width));
   const lineH = 78;
@@ -76,7 +76,7 @@ function makeDynamicLabel(initialLines, x, y, z, height = 0.32) {
     lastKey = key;
     const canvas = document.createElement('canvas');
     const g = canvas.getContext('2d');
-    const font = 'bold 66px ui-monospace, "DejaVu Sans Mono", monospace';
+    const font = 'bold 72px ui-monospace, "DejaVu Sans Mono", monospace';
     g.font = font;
     const maxW = Math.max(...arr.map(t => g.measureText(t).width));
     const lineH = 78;
@@ -346,9 +346,8 @@ export default function build(scene, emit) {
       if (name === 'play') {
         playing = typeof arg === 'boolean' ? arg : !playing;
         if (!playing) targetClock = clock;
-      } else if (name === 'step') {
-        const dir = Number(arg) || 1;
-        targetClock += dir * (LOOP_S / BEATS);
+      } else if (name === 'step' || name === 'back') {
+        playing = false; link = link === 'tb4' ? 'tb5' : 'tb4'; applyLink(); targetClock = clock;
       } else if (name === 'link' && (arg === 'tb4' || arg === 'tb5')) {
         link = arg;
         applyLink();

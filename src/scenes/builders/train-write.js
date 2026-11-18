@@ -40,6 +40,7 @@ function mkLabel(scene, text, x, y, z, height = 0.34) {
     const old = sp.material.map;
     sp.material.map = tex; sp.material.needsUpdate = true;
     if (old) old.dispose();
+    height = Math.max(height, .45);
     sp.scale.set((height * w) / 94, height, 1);
   };
   draw(text);
@@ -321,17 +322,8 @@ export default function build(scene, emit) {
     },
     action(name, arg) {
       if (name === 'play') playing = typeof arg === 'boolean' ? arg : !playing;
-      else if (name === 'step') {
-        playing = false;
-        if (mode === 'train') {
-          for (let l = 0; l < LAYERS; l++) nudgeLayer(l);
-          step++;
-          lStep.setText(`step ${step}`);
-          phase = 0.72;
-          lastLayerUpdated = 0;
-        } else {
-          phase = (phase + 0.34) % 1;
-        }
+      else if (name === 'step' || name === 'back') {
+        playing = false; mode = mode === 'train' ? 'infer' : 'train'; phase = 0.05; lastLayerUpdated = 4; applyMode();
       } else if (name === 'mode') {
         const m = arg === 'infer' || arg === 'inference' ? 'infer' : 'train';
         if (m !== mode) {

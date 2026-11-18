@@ -4,7 +4,7 @@ function makeLabel(lines, x, y, z, height = 0.36) {
   const arr = Array.isArray(lines) ? lines : [lines];
   const canvas = document.createElement('canvas');
   const g = canvas.getContext('2d');
-  const font = 'bold 68px ui-monospace, "DejaVu Sans Mono", monospace';
+  const font = 'bold 72px ui-monospace, "DejaVu Sans Mono", monospace';
   g.font = font;
   const maxW = Math.max(...arr.map(t => g.measureText(t).width));
   const lineH = 78;
@@ -96,7 +96,7 @@ export default function build(scene, emit) {
   for (let i = 0; i < 4; i++) {
     addBox(lid, 0.95 - i * 0.14, 0.055, 0.015, 0x2e2e2e, null, -0.22 + i * 0.04, 0.78 - i * 0.15, 0.045);
   }
-  scene.add(makeLabel(['work laptop', 'Windows + WSL'], -2.05, -1.42, 0.95, 0.34));
+  scene.add(makeLabel('work laptop', -2.05, -1.55, 0.95, 0.45));
 
   // Thunderbolt 4 cable connecting laptop to enclosure
   const cableCurve = new THREE.CatmullRomCurve3([
@@ -227,9 +227,8 @@ export default function build(scene, emit) {
     },
     action(name, arg) {
       if (name === 'play') playing = typeof arg === 'boolean' ? arg : !playing;
-      else if (name === 'step') {
-        beat = (beat + (Number(arg) || 1) + 4) % 4;
-        clock = (beat / 4) * 4.0;
+      else if (name === 'step' || name === 'back') {
+        playing = false; showBoundary = !showBoundary; apply();
       } else if (name === 'boundary') {
         showBoundary = !!arg;
         apply();
