@@ -37,7 +37,7 @@ export default function build(scene, emit) {
   for (let c = 0; c < 6; c++) {
     const group = new THREE.Group(); scene.add(group); columns.push(group);
     const x = (c - 2.5) * dx;
-    group.add(label(names[c], x, 0.14, c % 2 === 0 ? -2.95 : -3.6, 0.42));  // staggered so names don't collide
+    group.add(label(names[c], x, 1.25, c % 2 === 0 ? -2.95 : -3.6, 0.42));  // above the pillar tops (0.87)  // staggered so names don't collide
     const scope = label(scopes[c], -0.3, 2.3, -4.3, 0.42);
     scope.visible = false; scene.add(scope); scopesLabels.push(scope);
     for (let r = 0; r < 5; r++) {
