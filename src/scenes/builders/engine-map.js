@@ -56,9 +56,9 @@ export default function build(scene, emit) {
     }
   }
   rows.forEach((name, r) => scene.add(label(name, -4.55, 0.12, (r - 2) * dz, 0.42)));
-  scene.add(label('dark: documented', -2.4, 0.1, 3.2, 0.36));
-  scene.add(label('outline: speaker report', -0.2, 0.1, 3.75, 0.36));
-  scene.add(label('empty: no source', 2.3, 0.1, 3.2, 0.36));
+  scene.add(label('dark: documented', -0.9, 0.1, 3.2, 0.36));
+  scene.add(label('outline: speaker report', 1.0, 0.1, 3.85, 0.36));
+  scene.add(label('empty: no source', 2.9, 0.1, 3.2, 0.36));
   const apply = () => {
     columns.forEach((group, c) => {
       const active = selected === 'all' || selected === engines[c];
