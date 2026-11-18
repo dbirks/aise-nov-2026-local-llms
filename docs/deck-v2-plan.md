@@ -299,3 +299,16 @@ variants to build. Evidence labels are in brackets.
 - The German bread for **embed-vec**: pumpernickel or pretzel.
 - Whether to keep the Hitler/Mussolini analogy, or switch to capitals (Paris/Berlin/Rome) if the room calls for
   it.
+
+### Added during the build (2026-11-18)
+
+- **PLE naming.** vLLM and Pennyroyal call Qwen3.8-Flash-Next's 51B n-gram table "PLE". Gemma 3n's PLE (per-layer
+  embeddings) is an older, different design with the same acronym. Which one did you mean? The `ple` slide shows
+  Gemma 3n as A and the Flash-Next table as B.
+- **Prices.** The only dated price found was the RTX 5090 launch MSRP ($1,999). Both "about the same price" and the
+  API-cost line stay off the slides until you give dated sources.
+- **Your eGPU's GPU model.** `setup-egpu` B uses the RTX 5090 rated bandwidth "for scale" unless you confirm the card.
+- **Qwen3.8-27B facts used on slides** (from `config.json`, fetched 2026-11-18): hidden_size 5,120; 64 layers, 16 of
+  them full attention (the KV cache lives only in those); vocab 248,320.
+- **Your quantized checkpoints** (verified on Hugging Face): `dbirks/Qwen3.8-27B-NVFP4-AutoRound` is 20.61 GB and
+  `dbirks/Qwen3.8-27B-W4A16-AutoRound` is 19.47 GB. What AutoRound settings did you use (iters, nsamples, seqlen)?
