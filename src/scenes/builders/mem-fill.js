@@ -26,6 +26,6 @@ export default function build(scene, emit) {
       while(hatch.children.length){const o=hatch.children[0]; hatch.remove(o); o.geometry.dispose();} if(size>d.cap){ for(let i=0;i<7;i++){const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(d.x-d.w*.4,3.6+i*.17,.32),new THREE.Vector3(d.x+d.w*.4,3.6+i*.17+.35,.32)]),line); hatch.add(l);}}
       time.visible=false;
     });
-    out({playing,readout:`spec math · ${size} GB · read once: ${Math.round(size/1792*1000)} ms on 5090, ${Math.round(size/273*1000)} ms on spark (lower bound)`});
+    out({playing,readout:`spec math · ${size} GB · read once: ${size>32?"doesn't fit the 5090":Math.round(size/1792*1000)+' ms on 5090'}, ${Math.round(size/273*1000)} ms on spark (lower bound)`});
   },action(name,arg){if(name==='model' && [20,60,110].includes(Number(arg))){size=Number(arg);fill=0;} else if(name==='play') playing=typeof arg==='boolean'?arg:!playing; else if(name==='step'||name==='back'){playing=false;const opts=[20,60,110];size=opts[(opts.indexOf(size)+(name==='back'?-1:1)+opts.length)%opts.length];clock=0;fill=0;}}};
 }

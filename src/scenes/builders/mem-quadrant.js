@@ -4,7 +4,7 @@ const devices = [
   { name: 'RTX 5090', cap: 32, bw: 1792, key: 'gpu', x: -2.5, z: 0 },
   { name: 'DGX Spark', cap: 128, bw: 273, key: 'spark', x: 1.5, z: 2.2 },
   { name: 'M4 Max', cap: 128, bw: 546, key: 'm4', x: 1.5, z: -0.8 },
-  { name: 'Ryzen AI Max+ 395', cap: 128, bw: 256, key: 'amd', x: 1.5, z: -3.8 },
+  { name: 'Ryzen AI Max+ 395 (est.)', cap: 128, bw: 256, key: 'amd', x: 1.5, z: -3.8 },
 ];
 export default function build(scene, emit) {
   const group = new THREE.Group(); scene.add(group); const out = emitter(emit);

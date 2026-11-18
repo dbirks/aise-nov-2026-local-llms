@@ -145,7 +145,7 @@ export default function build(scene, emit) {
   const gpuTopLabel = makeDynamicLabel('0 bytes', X_GPU, 0.52, 0, 0.34);
   const subLeft = makeDynamicLabel('weights cross once', X_CABLE, -1.04, 0.72, 0.32);
   const subRight = makeDynamicLabel('no decode reads', X_GPU, -1.04, 0.72, 0.32);
-  scene.add(cableTopLabel.sprite, gpuTopLabel.sprite);
+  scene.add(cableTopLabel.sprite, gpuTopLabel.sprite, subLeft.sprite, subRight.sprite);
 
   let targetCable = logCubes(WEIGHTS_BYTES);
   let targetGpu = 0;
@@ -163,7 +163,7 @@ export default function build(scene, emit) {
     } else {
       targetCable = logCubes(DECODE_CABLE_BYTES);
       targetGpu = logCubes(WEIGHTS_BYTES);
-      cableTopLabel.set('~0.6 MB / token');
+      cableTopLabel.set('≤0.6 MB / token (logits)');
       gpuTopLabel.set('~20 GB / token');
       subLeft.set('vocab 150k × 4B');
       subRight.set(`~${RATIO_ROUNDED.toLocaleString('en-US')}× inside GPU`);
@@ -210,7 +210,7 @@ export default function build(scene, emit) {
       gpuTopLabel.sprite.position.y = curGpu * STEP_Y + 0.48;
 
       const readout = phase === 'decode'
-        ? 'simulated · per token: ~0.6 MB over the cable vs ~20 GB read inside the gpu'
+        ? 'simulated · per token: ≤0.6 MB logits over the cable vs ~20 GB read in the gpu'
         : 'simulated · load once: ~20 GB across the cable, 0 read inside the gpu';
       out({ playing, readout });
     },

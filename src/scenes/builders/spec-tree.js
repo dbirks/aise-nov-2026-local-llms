@@ -4,7 +4,7 @@ export default function build(scene, emit) {
   const group = new THREE.Group(); scene.add(group);
   const out = emitter(emit), box = new THREE.BoxGeometry(1, 1, 1);
   const dark = lam(0x222222), pale = lam(0xc8c8c8), mid = lam(0x777777);
-  let draft = 'tree', accept = 'left', playing = true, beat = 0, clock = 0;
+  let draft = 'tree', accept = 'top', playing = true, beat = 0, clock = 0;
   const drawing = new THREE.Group(); group.add(drawing);
   function label(text, x, y, size = 0.46) {
     const c = document.createElement('canvas'), g = c.getContext('2d');
@@ -23,7 +23,7 @@ export default function build(scene, emit) {
       { p: 1, x: -0.95, y: 1.08, word: 'cat' }, { p: 2, x: -0.95, y: -1.08, word: 'dog' },
       { p: 3, x: 0.1, y: 1.08, word: 'sat' }, { p: 4, x: 0.1, y: -1.08, word: 'ran' },
     ] : [0, 1, 2, 3].map((_, i) => ({ p: i - 1, x: -3.05 + i * 1.05, y: 0, word: ['start', 'the', 'cat', 'sat'][i] }));
-    const path = draft === 'tree' ? (accept === 'left' ? [0, 1, 3, 5] : [0, 2, 4, 6]) : [0, 1, 2, 3];
+    const path = draft === 'tree' ? (accept === 'top' ? [0, 1, 3, 5] : [0, 2, 4, 6]) : [0, 1, 2, 3];
     nodes.forEach((n, i) => {
       if (n.p >= 0) tube([nodes[n.p].x, nodes[n.p].y, 0], [n.x, n.y, 0]);
       cube(n.x, n.y, 0.8, 0.44, beat >= 2 && !path.includes(i) ? pale : dark);
@@ -53,7 +53,7 @@ export default function build(scene, emit) {
       else if (name === 'step') { playing = false; beat = (beat + (Number(arg) || 1) + 4) % 4; clock = 0; rebuild(); }
       else if (name === 'back') { playing = false; beat = (beat - 1 + 4) % 4; clock = 0; rebuild(); }
       else if (name === 'draft' && ['line', 'tree'].includes(arg)) { draft = arg; rebuild(); }
-      else if (name === 'accept' && ['left', 'right'].includes(arg)) { accept = arg; beat = 2; rebuild(); }
+      else if (name === 'accept' && ['top', 'bottom'].includes(arg)) { accept = arg; beat = 2; rebuild(); }
     },
   };
 }

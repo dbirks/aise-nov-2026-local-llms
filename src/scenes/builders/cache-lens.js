@@ -208,7 +208,7 @@ export default function build(scene, emit) {
   // (A) vLLM blocks: 3 cubes grouped by 4 tokens + hash arrows
   const vllmGroup = new THREE.Group();
   scene.add(vllmGroup);
-  makeLabel(vllmGroup, 'vLLM: hashed blocks · toy block 4; real default 16', 0.0, 2.86, 0, 0.34);
+  makeLabel(vllmGroup, 'vLLM: hashed blocks · toy block 4 (real: 16, or 64 from v0.34)', 0.0, 2.86, 0, 0.34);
 
   const blockCenters = [-2.56, 0.0, 2.56];
   const vllmCubes = [];

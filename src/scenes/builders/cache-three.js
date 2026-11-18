@@ -200,7 +200,7 @@ export default function build(scene, emit) {
   makeLabel(scene, 'SGLang', COL_X[1], 2.95, 0, 0.42);
   makeLabel(scene, 'llama.cpp', COL_X[2], 2.95, 0, 0.42);
 
-  makeLabel(scene, 'toy block 4; real default 16', COL_X[0], 2.48, 0, 0.32);
+  makeLabel(scene, 'toy block 4 (real: 16, or 64 from v0.34)', COL_X[0], 2.48, 0, 0.32);
   makeLabel(scene, 'radix tree · page 1', COL_X[1], 2.48, 0, 0.32);
   makeLabel(scene, '2 slots · per-slot LCP', COL_X[2], 2.48, 0, 0.32);
 
@@ -390,7 +390,7 @@ export default function build(scene, emit) {
 
       // 1. vLLM column state: B0 and B1 become solid dark HITs once R2 arrives (beat >= 1)
       const r2Arrived = beat >= 1;
-      const r3Arrived = beat >= 1;
+      const r3Arrived = beat >= 2;
       vllmB0.userData.setMode(r2Arrived ? 'hit' : 'miss');
       vllmB1.userData.setMode(r2Arrived ? 'hit' : 'miss');
       vllmB2a.userData.setMode('miss');

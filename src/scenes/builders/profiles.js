@@ -115,7 +115,7 @@ export default function build(scene, emit) {
 
     const ch = mkText([LIM[i].ch], { h: 0.32 });
     ch.sprite.position.set(x, -0.8, 0);
-    scene.add(ch.sprite);
+    ch.sprite.visible = false; scene.add(ch.sprite); // chapter numbers differ between deck v1 and v2
 
     // names sit under their own pillar, on two staggered rows so nothing has to be squeezed
     const nm = mkText(LIM[i].name, { h: 0.5, maxW: 2.7 });
@@ -132,7 +132,7 @@ export default function build(scene, emit) {
   lblProf.sprite.position.set(0, 2.82, 0);
   scene.add(lblProf.sprite);
 
-  const legend = mkText(['chapter number under each pillar · tall + dark = leans on'], { h: 0.34, maxW: 7.6 });
+  const legend = mkText(['tall + dark = this workload leans on it'], { h: 0.34, maxW: 7.6 });
   legend.sprite.position.set(0, -5.0, 0);
   scene.add(legend.sprite);
 

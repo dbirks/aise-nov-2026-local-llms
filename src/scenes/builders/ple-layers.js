@@ -19,7 +19,7 @@ export default function build(scene, emit) {
     m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v.normalize()); parent.add(m); return m;
   }
   label('Gemma: per-layer embeddings', 0, 3.05, 0, 0.46);
-  label('Qwen PLE: n-gram table', 0, 2.52, 0, 0.44);
+  label('not Qwen n-gram PLE', 0, 2.52, 0, 0.44);
   label('6 of 30 layers', 2.05, 1.92, 0, 0.44);
   label('PLE: 262,144 rows', -1.95, 1.92, 0, 0.44);
   label('E2B ≈ 2.01B params', -1.95, 1.40, 0, 0.44);

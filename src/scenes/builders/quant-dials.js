@@ -193,7 +193,7 @@ export default function build(scene, emit) {
       plate.scale.set(2.3, 0.12, 0.3);
       ruler.add(plate);
       label('too dense\nto draw', RX, -0.44, 0, 0.76, ruler);
-      dr('bf16\n16 dense levels', RX, 0.62, 0, 0.76);
+      dr('bf16\n16 bits (dense)', RX, 0.62, 0, 0.76);
       return;
     }
     const track = new THREE.Mesh(box, mid);
@@ -236,7 +236,7 @@ export default function build(scene, emit) {
   function refreshTags() {
     const f = FORMATS[w];
     dw(`${f.tag}\n${f.bits}`, WX, -0.75, 3.35, 0.76);
-    da(`follows weights\n${f.aBits} bits`, AX, -0.75, 3.35, 0.76);
+    da(`${f.scheme} preset\n${f.aBits} bits`, AX, -0.75, 3.35, 0.76);
     dk(`${KV[kv].tag}\n${KV[kv].bitsTag}`, KX, -0.75, 3.35, 0.76);
   }
   refreshTags();
