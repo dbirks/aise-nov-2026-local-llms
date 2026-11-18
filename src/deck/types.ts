@@ -10,7 +10,9 @@ export type SceneKind = 'moe' | 'spec' | 'offload' | 'sample' | 'attn' | 'flow'
   | 'agent-eviction' | 'decode-pass'
   // handoff route scenes (docs/presentation-production-handoff.md), src/scenes/builders/<kind>.js
   | 'agent-loop' | 'weights-fixed' | 'profiles' | 'gpu-choice' | 'moe-store' | 'moe-offload' | 'formats'
-  | 'quant-matrix' | 'autoround' | 'prefix-match' | 'drafter-train' | 'engine-map' | 'ngram-timeline' | 'collective';
+  | 'quant-matrix' | 'autoround' | 'prefix-match' | 'drafter-train' | 'engine-map' | 'ngram-timeline' | 'collective'
+  // deck v2 builders: any src/scenes/builders/<kind>.js file name
+  | (string & {});
 
 export type Tones = '4' | '6' | '8' | '16' | '32' | 'smooth';
 
