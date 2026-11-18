@@ -2,6 +2,8 @@
 
 Research and planning repository for a **30-minute, 201-level AI/software engineering meetup talk** (November 2026).
 
+> **Current working handoff:** [Full presentation production brief](docs/presentation-production-handoff.md) — the prioritized narrative, fact-checking rules, per-scene technical/3D specifications, source pack, and **V1 → V2 → V3** iteration workflow for implementation agents. This takes precedence over the historical brainstorm/old five-stage outline below. **Existing slides are design experiments, not speaker-approved plans.** The speaker will **not** use speaker notes. The title at the top of this README is provisional.
+
 ## Premise
 
 Assume the audience has already run a model with **Ollama or LM Studio**. The interesting next question is how to **choose, fit, accelerate, serve, and connect** local language models on real hardware. This is not an installation walkthrough or a taxonomy of LLM trivia.
@@ -960,6 +962,7 @@ pnpm build        # type-check + production build into dist/
 
 ## Research & agent handoff
 
+- [**PRIMARY: Production handoff and three-pass scene specifications**](docs/presentation-production-handoff.md)
 - [Living research notes and detailed 3D scene briefs](docs/local-llm-talk-research-notes.md)
 - [Instructions for an implementation agent](AGENTS.md)
 
