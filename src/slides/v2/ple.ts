@@ -1,13 +1,4 @@
 import type { Slide } from '../../deck/types';
-import { head } from './_ch';
-
-// PLACEHOLDER until P3 builds the 3D variants. evidence: MECHANISM (Gemma 3n; verify in P2)
-export const slides: Slide[] = [{
-  id: "ple",
-  type: 'list',
-  header: head(8),
-  title: "PLE: per-layer embeddings",
-  items: ["Each layer gets its own small lookup per token.", "Those tables can live off the GPU, so less of the model sits in VRAM."],
-  example: true,
-  notes: "evidence: MECHANISM (Gemma 3n; verify in P2)",
-}];
+import { chip } from './_ch';
+import { meta } from '../route/_meta';
+export const slides: Slide[] = [{id:'ple-a',variant:'A',type:'scene',scene:'ple-layers',chip:chip(8),caption:{title:'PLE: a lookup per layer, off the GPU',body:'Gemma 3n gives every layer its own small vector for each token from one big table. The table can sit in CPU memory because each step only needs one row.'},controls:[{kind:'choice',action:'where',label:'table in',options:[{label:'GPU',value:'gpu'},{label:'CPU RAM',value:'cpu'}],initial:'cpu'}],notes:meta({id:'ple',claim:'Gemma 3n slices an exact token-indexed row into per-layer inputs.',evidence:['MECHANISM','MANUFACTURER SPEC'],simulated:'Six layers and the highlighted token row.',not:'Gemma PLE is Qwen’s n-gram PLE, KV cache, or directly injected into the main residual stream.',sources:['https://ai.google.dev/gemma/docs/gemma-3n','https://huggingface.co/blog/gemma3n','https://github.com/huggingface/transformers/blob/main/src/transformers/models/gemma3n/modular_gemma3n.py']})}];
