@@ -138,6 +138,16 @@ const SECTIONS: { title: string; slides: Slide[] }[] = [
         'A small Go binary runs at home and phones home to a central gateway',
         'The gateway handles API keys and sends requests to the right machine',
       ]),
+    ],
+  },
+  {
+    title: 'What I learned next',
+    slides: [
+      page('learned-next', 'What I learned next', [
+        'N-gram weights',
+        'How the model training process works in more detail',
+        'Conceptualizing how a token flows through the model',
+      ]),
       page('questions', 'Questions?', []),
     ],
   },
