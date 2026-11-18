@@ -12,7 +12,7 @@ export function SectionLayout({ slide }: SlideProps<SectionSlide>) {
         <div className="sl-section-number">{slide.number}</div>
         <div className="sl-section-right">
           <div className="sl-section-title">{slide.title}</div>
-          <div className="sl-section-framing">{slide.framing}</div>
+          {slide.framing && <div className="sl-section-framing">{slide.framing}</div>}
         </div>
       </div>
     </div>

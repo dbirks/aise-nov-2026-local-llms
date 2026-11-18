@@ -8,13 +8,14 @@ import { EXTRA } from '../slides/v3/extra';
 // Reuses the v2 slide files and scenes; v3 wording lives in src/slides/v3/copy.ts and new slides in
 // src/slides/v3/extra.ts. Archived decks: v2 at /2/ (src/decks/v2.ts), v1 at /1/ (src/decks/route-v1.ts).
 
-const section = (n: number, framing: string): Slide => ({
+/** Section divider: number and chapter question only (speaker: no subtext). */
+const section = (n: number): Slide => ({
   id: `ch${CHAPTERS[n][0]}`,
   type: 'section',
-  header: head(n),
+  header: ['', head(n)[1]], // the chapter is the big title here, so no running label
   number: CHAPTERS[n][0],
   title: CHAPTERS[n][1],
-  framing,
+  framing: '',
 });
 
 /** Slides for these ids in chapter n: v3-only slides first, else the v2 files, with v3 headers and wording. */
@@ -52,24 +53,24 @@ const deck: Slide[] = [
     ],
   },
   ...ids(0, 'open'),
-  section(1, 'Hosted models are great. So why would you want to run one yourself?'),
-  ...ids(1, 'why-objection', 'why-good-enough', 'why-cost', 'why-independence', 'why-fun'),
-  section(2, 'Most of us start with Ollama. A few terms help once you look underneath.'),
+  section(1),
+  ...ids(1, 'why-summary', 'why-objection', 'why-good-enough', 'why-cost', 'why-independence', 'why-fun'),
+  section(2),
   ...ids(2, 'train-vs-infer', 'engines', 'setup-path'),
-  section(3, 'The first real problem is memory. A smart model has to fit on the card.'),
+  section(3),
   ...ids(3, 'setup-egpu', 'setup-slow-link', 'setup-hardware', 'gguf', 'embed-vec', 'quant-what', 'quant-types',
     'param-count', 'nvfp4', 'autoround', 'autoround-tool', 'moe'),
-  section(4, 'The weights aren’t the only thing using VRAM. The conversation needs room too.'),
+  section(4),
   ...ids(4, 'kv-cache'),
-  section(5, 'Several agents on one GPU, not one chat at a time.'),
+  section(5),
   ...ids(5, 'batching', 'prefix-cache', 'engines-cache'),
-  section(6, 'With agents queued up, each new token should cost less.'),
+  section(6),
   ...ids(6, 'spec-decode', 'mtp', 'block-drafters', 'shipped-drafters', 'drafter-vram', 'speculators-tool', 'my-drafter'),
-  section(7, 'A few newer things that changed how I think about fitting models.'),
+  section(7),
   ...ids(7, 'new-engines', 'ngram-tables', 'ple'),
-  section(8, 'What if coworkers want these models without buying hardware?'),
+  section(8),
   ...ids(8, 'share-why', 'collective', 'collective-request'),
-  section(9, 'Which trade-offs make sense for what you actually have?'),
+  section(9),
   ...ids(9, 'close', 'qa'),
 ];
 

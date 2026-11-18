@@ -5,6 +5,18 @@ const list = (id: string, title: string, items: string[], notes: string): Slide 
   ({ id, type: 'list', header: ['', ''], title, items, notes }) as Slide;
 
 export const EXTRA: Record<string, Slide> = {
+  // no title on purpose: the divider just asked the question
+  'why-summary': list(
+    'why-summary',
+    '',
+    [
+      'Pricing: no per-token bill or shifting limits.',
+      'Stability: an older model you depend on won’t be taken away.',
+      'No surprises: the quantization won’t change under the hood without you knowing.',
+      'Downtime: if it’s down, it’s because you took it down.',
+    ],
+    'evidence: SPEAKER OPINION. Overview of chapter 01; the slides after it take each point in turn.',
+  ),
   params: list(
     'params',
     'A parameter is one learned number',
