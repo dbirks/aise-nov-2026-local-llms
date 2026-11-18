@@ -56,7 +56,7 @@ export default function build(scene, emit) {
   const figures = [label('546k rows · 2d16h', 2.6, -3.0, 0.26), label('215,154 rows · 1.617', 3.0, -3.35, 0.26), label('baseline ~1.66', 3.0, -3.7, 0.26)];
   let mode = 'teacher', stage = 'pipeline', playing = true, time = 0, step = false, displayed = 0;
   return {
-    view: { target: [0.25, -0.5, 0], radius: 40, theta: 0.05, phi: 1.15, size: 3.0 },
+    view: { target: [0.35, -0.5, 0], radius: 40, theta: 0.05, phi: 1.15, size: 3.3 },
     update(dt) {
       if (step) { time = (Math.floor(time) + 1) % 10; step = false; playing = false; }
       if (playing) time = (time + dt) % 10;
