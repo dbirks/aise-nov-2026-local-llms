@@ -39,7 +39,6 @@ export default function build(scene, emit) {
     tex.minFilter = THREE.LinearFilter;
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false }));
     sp.renderOrder = 10;
-    sp.position.set(x, y, z);
     scene.add(sp);
     const rec = {
       sp,
