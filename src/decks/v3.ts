@@ -4,7 +4,7 @@ import { CHAPTERS, SHORT, chip, head } from '../slides/v3/_ch';
 import { COPY, DROP } from '../slides/v3/copy';
 import { EXTRA } from '../slides/v3/extra';
 
-// Deck v3, started 2026-11-18 (docs/deck-v3-plan.md). Served at the root and at /3/.
+// Deck v3, 2026-11-18 (docs/deck-v3-plan.md). Archived at /3/; the current deck is src/decks/v4.ts.
 // Reuses the v2 slide files and scenes; v3 wording lives in src/slides/v3/copy.ts and new slides in
 // src/slides/v3/extra.ts. Archived decks: v2 at /2/ (src/decks/v2.ts), v1 at /1/ (src/decks/route-v1.ts).
 

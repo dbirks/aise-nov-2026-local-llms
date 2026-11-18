@@ -65,4 +65,4 @@ export const COPY: Record<string, Patch> = {
 };
 
 /** Slide ids cut from v3 (variants the speaker picked against, or slides dropped). */
-export const DROP = new Set(['train-vs-infer-a', 'params']);
+export const DROP = new Set(['train-vs-infer-a', 'params', 'setup-egpu-b', 'setup-slow-link-b', 'setup-hardware-c']);
