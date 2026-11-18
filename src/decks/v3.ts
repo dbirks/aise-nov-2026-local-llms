@@ -1,7 +1,7 @@
 import type { Slide } from '../deck/types';
 import { v } from '../slides/v2';
 import { CHAPTERS, chip, head } from '../slides/v3/_ch';
-import { COPY } from '../slides/v3/copy';
+import { COPY, DROP } from '../slides/v3/copy';
 import { EXTRA } from '../slides/v3/extra';
 
 // Deck v3, started 2026-11-18 (docs/deck-v3-plan.md). Served at the root and at /3/.
@@ -20,7 +20,11 @@ const section = (n: number, framing: string): Slide => ({
 /** Slides for these ids in chapter n: v3-only slides first, else the v2 files, with v3 headers and wording. */
 const ids = (n: number, ...keys: string[]): Slide[] =>
   keys
-    .flatMap(k => (EXTRA[k] ? [EXTRA[k]] : v(k)))
+    .flatMap(k => {
+      const kept = (EXTRA[k] ? [EXTRA[k]] : v(k)).filter(s => !DROP.has(s.id));
+      // once only one variant is left it is the pick: drop its A/B/C badge
+      return kept.length === 1 ? kept.map(s => ({ ...s, variant: undefined }) as Slide) : kept;
+    })
     .map(s => {
       const out = { ...s, ...COPY[s.id] } as Slide & { header?: unknown; chip?: unknown };
       if ('header' in s) out.header = head(n);
@@ -51,7 +55,7 @@ const deck: Slide[] = [
   section(1, 'Hosted models are great. So why would you want to run one yourself?'),
   ...ids(1, 'why-objection', 'why-good-enough', 'why-cost', 'why-independence', 'why-fun'),
   section(2, 'Most of us start with Ollama. A few terms help once you look underneath.'),
-  ...ids(2, 'train-vs-infer', 'params', 'engines', 'setup-path'),
+  ...ids(2, 'train-vs-infer', 'engines', 'setup-path'),
   section(3, 'The first real problem is memory. A smart model has to fit on the card.'),
   ...ids(3, 'setup-egpu', 'setup-slow-link', 'setup-hardware', 'gguf', 'embed-vec', 'quant-what', 'quant-types',
     'param-count', 'nvfp4', 'autoround', 'autoround-tool', 'moe'),

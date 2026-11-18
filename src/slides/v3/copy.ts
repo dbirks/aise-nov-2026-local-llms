@@ -22,14 +22,11 @@ export const COPY: Record<string, Patch> = {
   // 01 — Why run a local model?
   'why-objection': {
     title: 'Hosted models are really good',
-    items: ['The models are capable, and subscriptions can be a great deal.', 'I use them too.'],
+    items: ['Subscriptions are a great deal right now.', 'They’re called frontier models for a reason.'],
   },
   'why-good-enough': {
     title: 'You don’t always need the biggest model',
-    items: [
-      'A useful model is one that reliably does the work you ask it to do.',
-      'Even with hosted models, I’ve found I don’t always need the most expensive option.',
-    ],
+    items: ['Plenty of work doesn’t need a frontier model.'],
   },
   'why-cost': {
     title: 'Pricing and limits can change',
@@ -42,25 +39,16 @@ export const COPY: Record<string, Patch> = {
   'why-independence': {
     title: 'Know exactly what you’re running',
     items: [
-      'With a local model, I choose the weights, the quantization, and when to change them.',
-      'For work that has to stay on my machine, I can keep inference local.',
+      'With local models, you choose the weights, the level of quantization, and when they change.',
+      'You also know for certain your data isn’t being used for training.',
     ],
   },
   'why-fun': {
     title: 'And it’s fun',
-    items: [
-      'There are a lot of settings to try, and I like seeing what each one changes.',
-      'You might have completely different reasons, and that’s fine too.',
-    ],
+    items: ['It’s really fun being able to tinker and play with settings.'],
   },
 
   // 02 — Getting started
-  'train-vs-infer-a': {
-    caption: {
-      title: 'Training produces the weights. Inference uses them.',
-      body: 'During training, a model’s numbers are adjusted using lots of examples, including text and code. Inference uses those learned weights to process a prompt and predict the next token.',
-    },
-  },
   'train-vs-infer-b': {
     caption: {
       title: 'Training produces the weights. Inference uses them.',
@@ -68,10 +56,13 @@ export const COPY: Record<string, Patch> = {
     },
   },
   engines: {
-    title: 'An inference engine runs the model',
+    title: 'The inference engine runs the model',
     items: [
       'llama.cpp, vLLM, and SGLang are engines that load weights and compute responses. Ollama makes local models easier to download and run.',
-      'GGUF and safetensors are file formats for storing model tensors. They’re not inference engines.',
+      'GGUF and safetensors are file formats for storing model tensors.',
     ],
   },
 };
+
+/** Slide ids cut from v3 (variants the speaker picked against, or slides dropped). */
+export const DROP = new Set(['train-vs-infer-a', 'params']);

@@ -39,6 +39,20 @@ function readout(kind: SceneKind, s: SceneState): string {
   }
 }
 
+/** Play / pause drawn on a 7×7 pixel grid so it matches the pixel font. */
+const ICONS: Record<'play' | 'pause', [number, number, number][]> = {
+  // [x, y, width] runs
+  play: [[1, 0, 1], [1, 1, 2], [1, 2, 3], [1, 3, 4], [1, 4, 3], [1, 5, 2], [1, 6, 1]],
+  pause: [0, 1, 2, 3, 4, 5, 6].flatMap(y => [[1, y, 2], [4, y, 2]] as [number, number, number][]),
+};
+function PixelIcon({ kind }: { kind: 'play' | 'pause' }) {
+  return (
+    <svg className="sc-icon" viewBox="0 0 7 7" shapeRendering="crispEdges" aria-hidden>
+      {ICONS[kind].map(([x, y, w]) => <rect key={`${x}-${y}`} x={x} y={y} width={w} height={1} fill="currentColor" />)}
+    </svg>
+  );
+}
+
 /**
  * Type C · full-bleed pixel scene with floating chip, caption card (concept controls + live
  * readout) and hint. While the slide is active, → steps a paused scene instead of advancing
@@ -112,7 +126,7 @@ export function SceneLayout({ slide, active, pixelOpts, onStepKey, thumb }: Slid
               onClick={() => { handle?.action('play'); }}
               aria-label={playing ? 'pause' : 'play'}
             >
-              {playing ? '❚❚' : '▶'}
+              <PixelIcon kind={playing ? 'pause' : 'play'} />
             </button>
             <button className="sc-btn" onClick={() => { handle?.action('view'); }}>reset view</button>
 
