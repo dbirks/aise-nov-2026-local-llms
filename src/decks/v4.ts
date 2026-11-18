@@ -140,12 +140,11 @@ const SECTIONS: { title: string; slides: Slide[] }[] = [
     ],
   },
   {
-    title: 'What to learn next',
+    title: 'Things to watch',
     slides: [
-      page('learned-next', 'What to learn next', [
+      page('watch', 'Things to watch', [
         'N-gram weights',
-        'How the model training process works in more detail',
-        'Conceptualizing how a token flows through the model',
+        'Custom inference engines like NInfer, Radiance, and Strata',
       ]),
       page('questions', 'Questions?', []),
     ],
