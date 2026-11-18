@@ -14,4 +14,5 @@ export const CHAPTERS: [string, string][] = [
 ];
 export const LAST = CHAPTERS[CHAPTERS.length - 1][0];
 export const chip = (n: number) => `${CHAPTERS[n][0]} — ${CHAPTERS[n][1]}`;
-export const head = (n: number): [string, string] => [TALK, `${CHAPTERS[n][0]} / ${LAST}`];
+/** Running header: the chapter we're in on the left (the page number is filled in by the deck). */
+export const head = (n: number): [string, string] => [chip(n), `${CHAPTERS[n][0]} / ${LAST}`];
