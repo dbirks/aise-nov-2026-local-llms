@@ -28,6 +28,8 @@ interface SlideBase {
   example?: boolean;
   /** speaker notes (shown in the presenter overlay, never on the slide) */
   notes?: string;
+  /** one of several candidate builds of the same slide; renders a big A/B/C badge top-left */
+  variant?: 'A' | 'B' | 'C';
 }
 
 /** A · Title */

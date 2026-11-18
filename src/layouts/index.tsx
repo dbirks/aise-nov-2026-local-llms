@@ -20,5 +20,5 @@ export function SlideView(props: SlideProps<Slide>) {
     case 'list': body = <ListLayout {...props} slide={slide} />; break;
     case 'splat': body = <SplatLayout {...props} slide={slide} />; break;
   }
-  return <div className="slide">{body}{slide.example && <ExampleTag />}</div>;
+  return <div className="slide">{body}{slide.example && <ExampleTag />}{slide.variant && <div className="sl-variant">{slide.variant}</div>}</div>;
 }
