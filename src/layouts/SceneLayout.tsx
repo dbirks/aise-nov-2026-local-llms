@@ -65,8 +65,9 @@ export function SceneLayout({ slide, active, pixelOpts, onStepKey, thumb }: Slid
   useEffect(() => {
     if (!active || thumb || !onStepKey) return;
     onStepKey((dir: 1 | -1) => {
-      if (dir === 1 && state?.playing === false) { handle?.action('step'); return true; }
-      return false;
+      // ↓ = next beat, ↑ = previous beat ('back'; builders that can't go back ignore it). Both pause playback.
+      handle?.action(dir === 1 ? 'step' : 'back');
+      return true;
     });
     return () => onStepKey(null);
   }, [active, thumb, onStepKey, handle, state]);
@@ -144,7 +145,7 @@ export function SceneLayout({ slide, active, pixelOpts, onStepKey, thumb }: Slid
         {!thumb && <div className="sc-readout">{line ? (/^(simulated|speaker|spec|mechanism|measured)\b/.test(line) ? line : `simulated · ${line}`) : 'simulated · initialising…'}</div>}
       </div>
 
-      <div className="sc-hint">{slide.hint ?? '← → step · drag to orbit'}</div>
+      <div className="sc-hint">{slide.hint ?? '← → slide · ↓ ↑ step · drag to orbit'}</div>
     </div>
   );
 }

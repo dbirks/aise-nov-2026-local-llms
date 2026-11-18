@@ -84,12 +84,12 @@ export function Deck({ slides }: { slides: Slide[] }) {
         if (k === 'Escape' || k === 'o' || k === 'O') setOverview(false);
         return;
       }
-      if (k === 'ArrowRight' || k === 'ArrowLeft') {
-        const dir = k === 'ArrowRight' ? 1 : -1;
-        if (stepHandler.current?.(dir)) return;
-        go(index + dir);
-      } else if (k === 'PageDown' || k === ' ' || k === 'ArrowDown') { e.preventDefault(); go(index + 1); }
-      else if (k === 'PageUp' || k === 'ArrowUp') { e.preventDefault(); go(index - 1); }
+      // ← → change slides; ↓ ↑ step the active scene forward / back (no-op on slides without steps).
+      if (k === 'ArrowRight') go(index + 1);
+      else if (k === 'ArrowLeft') go(index - 1);
+      else if (k === 'ArrowDown' || k === 'ArrowUp') { e.preventDefault(); stepHandler.current?.(k === 'ArrowDown' ? 1 : -1); }
+      else if (k === 'PageDown' || k === ' ') { e.preventDefault(); go(index + 1); }
+      else if (k === 'PageUp') { e.preventDefault(); go(index - 1); }
       else if (k === 'Home') go(0);
       else if (k === 'End') go(slides.length - 1);
       else if (k === 'o' || k === 'O' || k === 'Escape') setOverview(v => !v && k !== 'Escape');
