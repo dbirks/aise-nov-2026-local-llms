@@ -93,6 +93,7 @@ export default function build(scene, emit) {
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
     const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false }));
+    height = Math.max(height, 0.52);
     s.scale.set(height * c.width / c.height, height, 1);
     s.position.set(x, y, z);
     s.renderOrder = 10;
@@ -258,8 +259,9 @@ export default function build(scene, emit) {
     },
     action(name, arg) {
       if (name === 'play') playing = typeof arg === 'boolean' ? arg : !playing;
-      else if (name === 'step') {
-        beat = (beat + (Number(arg) || 1) + 3) % 3;
+      else if (name === 'step' || name === 'back') {
+        playing = false;
+        beat = (beat + (name === 'back' ? -1 : 1) + 3) % 3;
         clock = 0;
       } else if (name === 'outlier') {
         const val = Number(arg);

@@ -39,6 +39,7 @@ function mkLabel(scene, text, x, y, z, height = 0.34) {
     const old = sp.material.map;
     sp.material.map = tex; sp.material.needsUpdate = true;
     if (old) old.dispose();
+    height = Math.max(height, 0.42);
     sp.scale.set((height * w) / 94, height, 1);
   };
   draw(text);
@@ -218,6 +219,8 @@ export default function build(scene, emit) {
           holding = k === n;
         }
         updateCounters();
+      } else if (name === 'back') {
+        playing = false; clock = 0; k = k > 1 ? k - 1 : n; holding = k === n; updateCounters();
       } else if (name === 'n' && [4, 8, 12].includes(Number(arg))) {
         const next = Number(arg);
         n = next;

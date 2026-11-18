@@ -137,6 +137,7 @@ export default function build(scene, emit) {
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
     const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false }));
+    height = Math.max(height, 0.52);
     s.scale.set(height * c.width / c.height, height, 1);
     s.position.set(x, y, z);
     s.renderOrder = 10;
@@ -320,15 +321,15 @@ export default function build(scene, emit) {
       s.material.dispose();
     }
     if (format === 'nvfp4') {
-      label('16 input weights', X_IN, 2.75, 0.2, 0.33, dynLabels);
-      label('block max 0.092', X_MAX + 0.15, 2.20, 0, 0.32, dynLabels);
+      label('16 input weights', X_IN - 0.25, 3.3, 0.2, 0.33, dynLabels);
+      label('block max 0.092', X_MAX + 0.25, 2.55, 0, 0.32, dynLabels);
       label('scale 15 × 0.001', X_SCALE, 1.05, 0, 0.31, dynLabels);
-      label('FP32 0.001', X_SCALE, 2.05, 0, 0.29, dynLabels);
+      label('FP32 0.001', X_SCALE + 0.25, 1.85, 0, 0.29, dynLabels);
       label('9 bytes for 16 values', X_PACK + 0.05, 2.55, 0, 0.33, dynLabels);
     } else {
       label('16 + 16 weights', X_IN + 0.10, 2.75, 0.2, 0.33, dynLabels);
       label('toy 2nd half', X_IN + 0.15, -1.55, 1.8, 0.30, dynLabels);
-      label('block max 0.380', X_MAX + 0.15, 2.20, 0, 0.32, dynLabels);
+      label('block max 0.380', X_MAX + 0.25, 2.55, 0, 0.32, dynLabels);
       label('E8M0 scale 0.0625', X_SCALE, 1.05, 0, 0.31, dynLabels);
       label(`${model.collapsedNonZero} collapsed to 0`, X_RULER, -2.05, 0, 0.32, dynLabels);
       label('17 bytes for 32 values', X_PACK + 0.05, 2.55, 0, 0.33, dynLabels);
@@ -461,8 +462,9 @@ export default function build(scene, emit) {
     },
     action(name, arg) {
       if (name === 'play') playing = typeof arg === 'boolean' ? arg : !playing;
-      else if (name === 'step') {
-        beat = (beat + (Number(arg) || 1) + 5) % 5;
+      else if (name === 'step' || name === 'back') {
+        playing = false;
+        beat = (beat + (name === 'back' ? -1 : 1) + 5) % 5;
         clock = 0;
       } else if (name === 'format' && (arg === 'nvfp4' || arg === 'mxfp4')) {
         applyFormat(arg);

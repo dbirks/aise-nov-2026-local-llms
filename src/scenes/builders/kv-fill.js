@@ -32,6 +32,7 @@ function mkLabel(scene, text, x, y, z, height = 0.34) {
     const old = sp.material.map;
     sp.material.map = tex; sp.material.needsUpdate = true;
     if (old) old.dispose();
+    height = Math.max(height, 0.42);
     sp.scale.set((height * w) / 94, height, 1);
   };
   draw(text);
@@ -202,7 +203,7 @@ export default function build(scene, emit) {
 
     const endX = FREE_X0 + ctx * DX + 0.34;
     fullGroup.position.x = endX;
-    lFull.position.set(endX, 1.35, -0.45);
+    lFull.position.set(endX - 0.65, 1.55, -0.45);
     lFree.position.set(FREE_X0 + span * 0.78, 1.32, -0.55);
   }
   layoutCapacity();
@@ -283,6 +284,11 @@ export default function build(scene, emit) {
         playing = false;
         clock = 0;
         advanceBeat();
+      } else if (name === 'back') {
+        playing = false; clock = 0;
+        if (full) full = false;
+        else if (tokens > 1) tokens--;
+        else { tokens = ctx; full = true; }
       } else if (name === 'ctx' && (Number(arg) === 8 || Number(arg) === 16)) {
         const next = Number(arg);
         if (next !== ctx) {

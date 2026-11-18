@@ -24,12 +24,12 @@ export default function build(scene, emit) {
 
   function label(text, x, y, h = 0.3, ink = '#111111', z = 1.2) {
     const c = document.createElement('canvas'), g = c.getContext('2d');
-    g.font = 'bold 64px monospace'; const w = Math.ceil(g.measureText(text).width) + 18;
-    c.width = w; c.height = 84; g.font = 'bold 64px monospace'; g.fillStyle = ink;
+    g.font = 'bold 72px monospace'; const w = Math.ceil(g.measureText(text).width) + 18;
+    c.width = w; c.height = 84; g.font = 'bold 72px monospace'; g.fillStyle = ink;
     g.textBaseline = 'middle'; g.fillText(text, 9, 44);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
     const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false }));
-    s.scale.set(h * w / 84, h, 1); s.position.set(x, y, z); s.renderOrder = 10; root.add(s); return s;
+    h = Math.max(h, 0.45); s.scale.set(h * w / 84, h, 1); s.position.set(x, y, z); s.renderOrder = 10; root.add(s); return s;
   }
 
   // ── funnel plates + in-plate labels (dark text on idle, light on active) ─
@@ -113,7 +113,7 @@ export default function build(scene, emit) {
     },
     action(name, arg) {
       if (name === 'play') playing = typeof arg === 'boolean' ? arg : !playing;
-      else if (name === 'step') { stage = (stage + (Number(arg) < 0 ? STAGES.length - 1 : 1)) % STAGES.length; phase = 'dwell'; pt = 0; }
+      else if (name === 'step' || name === 'back') { playing = false; stage = (stage + (name === 'back' ? STAGES.length - 1 : 1)) % STAGES.length; phase = 'dwell'; pt = 0; }
       else if (name === 'run' && RUNS[Number(arg)]) run = Number(arg);
     },
   };

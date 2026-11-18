@@ -24,12 +24,12 @@ export default function build(scene, emit) {
 
   function label(text, x, y, h = 0.3, ink = '#111111', z = 1.2) {
     const c = document.createElement('canvas'), g = c.getContext('2d');
-    g.font = 'bold 64px monospace'; const w = Math.ceil(g.measureText(text).width) + 18;
-    c.width = w; c.height = 84; g.font = 'bold 64px monospace'; g.fillStyle = ink;
+    g.font = 'bold 72px monospace'; const w = Math.ceil(g.measureText(text).width) + 18;
+    c.width = w; c.height = 84; g.font = 'bold 72px monospace'; g.fillStyle = ink;
     g.textBaseline = 'middle'; g.fillText(text, 9, 44);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
     const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false }));
-    s.scale.set(h * w / 84, h, 1); s.position.set(x, y, z); s.renderOrder = 10; root.add(s); return s;
+    h = Math.max(h, 0.45); s.scale.set(h * w / 84, h, 1); s.position.set(x, y, z); s.renderOrder = 10; root.add(s); return s;
   }
   function setLabel(l, text, y) { // rebuild the sprite only when text/row changes
     if (l.s && l.text === text) { l.s.position.y = y; return; }
@@ -82,7 +82,7 @@ export default function build(scene, emit) {
   const cap = new THREE.Mesh(box, lam(0x111111)); root.add(cap);
 
   // ── right-hand labels (de-collided every frame) ─────────────────────────
-  const LX = 2.7, GAP = 0.48;
+  const LX = 2.7, GAP = 0.55;
   const mk = () => ({ s: null, text: '', lead: new THREE.Line(
     new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), thinMat), w: 2.4 });
   const labels = [mk(), mk(), mk(), mk(), mk(), mk()]; // weights ×2, kvs ×2, free, doesn't fit
@@ -158,7 +158,7 @@ export default function build(scene, emit) {
     },
     action(name, arg) {
       if (name === 'play') playing = typeof arg === 'boolean' ? arg : !playing;
-      else if (name === 'step') { ctx = CTXS[(CTXS.indexOf(ctx) + 1) % 3]; clock = 0; }
+      else if (name === 'step' || name === 'back') { playing = false; ctx = CTXS[(CTXS.indexOf(ctx) + (name === 'back' ? 2 : 1)) % 3]; clock = 0; }
       else if (name === 'ctx' && CTXS.includes(Number(arg))) { ctx = Number(arg); clock = 0; }
       else if (name === 'window') windowOn = typeof arg === 'boolean' ? arg : !windowOn;
     },
