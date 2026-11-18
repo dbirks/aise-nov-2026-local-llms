@@ -140,9 +140,9 @@ const SECTIONS: { title: string; slides: Slide[] }[] = [
     ],
   },
   {
-    title: 'What I learned next',
+    title: 'What I’m learning next',
     slides: [
-      page('learned-next', 'What I learned next', [
+      page('learned-next', 'What I’m learning next', [
         'N-gram weights',
         'How the model training process works in more detail',
         'Conceptualizing how a token flows through the model',
