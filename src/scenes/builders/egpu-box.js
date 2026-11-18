@@ -20,7 +20,7 @@ function makeLabel(lines, x, y, z, height = 0.36) {
   const sprite = new THREE.Sprite(
     new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }),
   );
-  const totalH = height * arr.length;
+  const totalH = Math.max(height, .45) * arr.length;
   sprite.scale.set(totalH * (canvas.width / canvas.height), totalH, 1);
   sprite.position.set(x, y, z);
   sprite.renderOrder = 10;

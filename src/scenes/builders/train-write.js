@@ -165,11 +165,10 @@ export default function build(scene, emit) {
   inferGroup.add(predTile);
 
   // ── labels ──
-  mkLabel(scene, '4 layer slabs', -2.72, 0.35, 0, 0.34);
   const lInput = mkLabel(scene, 'text batch', -0.25, -2.58, 0.72, 0.34);
   const lOut = mkLabel(scene, 'output', -0.25, 2.95, 0, 0.32);
   const lLoss = mkLabel(scene, 'loss', 1.55, 3.12, 0, 0.34);
-  const lSweep = mkLabel(scene, 'backward sweep', 2.35, 0.95, 0, 0.32);
+  const lSweep = mkLabel(scene, 'backward', 2.55, 0.95, 0, 0.32);
   const lStep = mkLabel(scene, 'step 1', 2.35, 0.45, 0, 0.36);
   const lLock = mkLabel(scene, 'read only', 2.25, 0.32, 0.95, 0.36);
 

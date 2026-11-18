@@ -138,14 +138,14 @@ export default function build(scene, emit) {
   const gpuTower = buildTower(scene, X_GPU);
 
   scene.add(makeLabel('toy sizes · log10', 0.25, 4.82, 0, 0.34));
-  scene.add(makeLabel('across the cable', X_CABLE, -0.58, 0.72, 0.34));
-  scene.add(makeLabel('inside the GPU', X_GPU, -0.58, 0.72, 0.34));
+  scene.add(makeLabel('cable', X_CABLE, -0.58, 0.72, 0.34));
+  scene.add(makeLabel('GPU reads', X_GPU, -0.58, 0.72, 0.34));
 
   const cableTopLabel = makeDynamicLabel('~20 GB once', X_CABLE, 4.16, 0, 0.34);
   const gpuTopLabel = makeDynamicLabel('0 bytes', X_GPU, 0.52, 0, 0.34);
   const subLeft = makeDynamicLabel('weights cross once', X_CABLE, -1.04, 0.72, 0.32);
   const subRight = makeDynamicLabel('no decode reads', X_GPU, -1.04, 0.72, 0.32);
-  scene.add(cableTopLabel.sprite, gpuTopLabel.sprite, subLeft.sprite, subRight.sprite);
+  scene.add(cableTopLabel.sprite, gpuTopLabel.sprite);
 
   let targetCable = logCubes(WEIGHTS_BYTES);
   let targetGpu = 0;

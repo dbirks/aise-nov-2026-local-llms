@@ -18,13 +18,20 @@ const PT = 0.1;                     // seconds of screen time per prefilled toke
 const HOLD = 2.8;
 
 const clamp01 = v => Math.max(0, Math.min(1, v));
+const TH = 0.48, PHI = 1.12;   // camera angles, mirrored by the screen-space label placement
+const RV = new THREE.Vector3(Math.cos(TH), 0, -Math.sin(TH));
+const DV = new THREE.Vector3(Math.sin(PHI) * Math.sin(TH), Math.cos(PHI), Math.sin(PHI) * Math.cos(TH));
+const UV = new THREE.Vector3().crossVectors(DV, RV);
+const TGT = new THREE.Vector3(0.2, 0.7, 0);   // view target, kept in sync with `view` below
 
 export default function build(scene, emit) {
   const out = emitter(emit);
   const box = new THREE.BoxGeometry(1, 1, 1);
 
   // ── labels ──
-  function label(text, x, y, z = 0, h = 0.34) {
+  // Labels sit at z = 0 and are placed by SCREEN height (world units above the view target): the
+  // camera is elevated and turned, so scene depth drifts down-left and world-y text would collide.
+  function label(text, sx, sy, h = 0.34) {
     const cv = document.createElement('canvas');
     const g = cv.getContext('2d');
     const tex = new THREE.CanvasTexture(cv);
@@ -53,7 +60,9 @@ export default function build(scene, emit) {
         sp.scale.set((h * cv.width) / cv.height, h, 1);
       },
     };
+    rec.at = (sx, sy) => sp.position.copy(TGT).addScaledVector(RV, sx).addScaledVector(UV, sy);
     rec.set(text);
+    rec.at(sx, sy);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => rec.set(rec.text)).catch(() => {});
     return rec;
   }
@@ -116,17 +125,17 @@ export default function build(scene, emit) {
   }
 
   // ── counter panel ──
-  const topLab = label('shared KV blocks', 0, 3.45, 0);
-  const usedLab = label('used by 3', 3.0, 2.9, 0, 0.3);
-  label('system prompt + tools', -1.25, -0.62, 0);
-  label('own question', 2.1, -0.62, 0);
-  const workLab = label('prefill work: 21 tokens', 1.35, -1.55, 0, 0.36);
+  const topLab = label('shared KV blocks', 0, 2.4);
+  const usedLab = label('used by 3', 2.6, 1.74, 0.3);
+  label('system prompt + tools', -1.25, -1.0);
+  label('own question', 2.05, -1.0);
+  const workLab = label('prefill work: 21 tokens', 1.3, -1.55, 0.36);
   const meterTrack = new THREE.Mesh(box, ghost(0x5a5a5a, 0.26));
   meterTrack.scale.set(3.0, 0.04, 0.14);
-  meterTrack.position.set(1.35, -1.98, 0);
+  meterTrack.position.set(1.45, -1.5, 0);
   const meterBar = new THREE.Mesh(box, lam(0x141414));
   meterBar.scale.set(1, 0.16, 0.22);
-  meterBar.position.set(0.5, -1.98, 0);
+  meterBar.position.set(0.5, -1.5, 0);
   scene.add(meterTrack, meterBar);
 
   let share = true, n = 3, playing = true, clock = 0, stepReq = false;
@@ -140,7 +149,7 @@ export default function build(scene, emit) {
   }
 
   return {
-    view: { target: [0.35, 0.9, 0], radius: 40, theta: 0.48, phi: 1.12, size: 2.5 },
+    view: { target: [0.2, 0.7, 0], radius: 40, theta: TH, phi: PHI, size: 2.5 },
     update(dt) {
       const loop = n * GAP + HOLD;
       if (playing) { clock += dt; if (clock >= loop) clock -= loop; }
@@ -154,7 +163,7 @@ export default function build(scene, emit) {
       for (let a = 0; a < MAXN; a++) {
         const on = a < n;
         const rise = on ? clamp01((clock - a * GAP) / RISE) : 0;
-        const zc = (a - (n - 1) / 2) * 0.85;
+        const zc = (a - (n - 1) / 2) * 0.8;
         const front = workFront(a, clock);
         const work = agentProg(a, clock) * ((share && a > 0) ? TAIL : TOTAL);
         totalWork += work;
@@ -163,20 +172,20 @@ export default function build(scene, emit) {
         for (let j = 0; j < SHARED; j++) {
           const s = rise * (0.2 + 0.8 * clamp01((front - xs(j)) / PITCH + 1));
           const w = Math.max(0.001, 0.26 * (on ? s : 0.001));
-          sharedTile.setMatrixAt(a * SHARED + j, M.compose(P.set(xs(j), 0.55, on ? zc : -60), Q, S.set(w, w, 0.22 * s)));
+          sharedTile.setMatrixAt(a * SHARED + j, M.compose(P.set(xs(j), 0.72, on ? zc : -60), Q, S.set(w, w, 0.22 * s)));
         }
         for (let j = 0; j < TAIL; j++) {
           const s = rise * (0.2 + 0.8 * clamp01((front - xs(SHARED + j)) / PITCH + 1));
           const w = Math.max(0.001, 0.24 * (on ? s : 0.001));
-          tailTile.setMatrixAt(a * TAIL + j, M.compose(P.set(xs(SHARED + j), 0.55, on ? zc : -60), QD, S.set(w, w, 0.2 * s)));
+          tailTile.setMatrixAt(a * TAIL + j, M.compose(P.set(xs(SHARED + j), 0.72, on ? zc : -60), QD, S.set(w, w, 0.2 * s)));
         }
         // own tail KV blocks
         for (let j = 0; j < TAIL; j++) {
           const g = clamp01((front - xs(SHARED + j)) / PITCH);
           const id = a * TAIL + j;
           if (!on || g <= 0) { kvTails.body.setMatrixAt(id, HIDE); kvTails.cap.setMatrixAt(id, HIDE); continue; }
-          kvTails.body.setMatrixAt(id, M.compose(P.set(xs(SHARED + j), 1.5, zc), Q, S.set(0.24, 0.34 * g, 0.24)));
-          kvTails.cap.setMatrixAt(id, M.compose(P.set(xs(SHARED + j), 1.5 + 0.17 * g + 0.05, zc), Q, S.set(0.28, 0.05, 0.28)));
+          kvTails.body.setMatrixAt(id, M.compose(P.set(xs(SHARED + j), 1.62, zc), Q, S.set(0.24, 0.34 * g, 0.24)));
+          kvTails.cap.setMatrixAt(id, M.compose(P.set(xs(SHARED + j), 1.62 + 0.17 * g + 0.05, zc), Q, S.set(0.28, 0.05, 0.28)));
         }
         // prefill bar: only over what this agent actually computed
         const bar = bars[a];
@@ -185,15 +194,15 @@ export default function build(scene, emit) {
           const x0 = share && a > 0 ? xs(SHARED) - PITCH * 0.6 : xs(0) - PITCH * 0.6;
           const w = Math.max(0.002, (front - x0));
           bar.scale.set(w, 0.08, 0.1);
-          bar.position.set(x0 + w / 2, 0.18, zc);
+          bar.position.set(x0 + w / 2, 0.4, zc);
         }
         // arrows
         const a0 = arrows[a * 2], a1 = arrows[a * 2 + 1];
         if (!(on && rise > 0.6)) { a0.grp.visible = false; a1.grp.visible = false; }
         else {
           const ay = share ? 2.42 : 1.12, az = share ? 0 : zc;
-          setArrow(a0, [xs(1), 0.72, zc], [xs(1), ay, az]);
-          setArrow(a1, [xs(SHARED - 2), 0.72, zc], [xs(SHARED - 2), ay, az]);
+          setArrow(a0, [xs(1), 0.9, zc], [xs(1), ay, az]);
+          setArrow(a1, [xs(SHARED - 2), 0.9, zc], [xs(SHARED - 2), ay, az]);
         }
 
         // own copies of the shared part when caching is off
@@ -222,12 +231,12 @@ export default function build(scene, emit) {
       const cold = TOTAL * n, warm = SHARED + TAIL * n;
       topLab.set(share ? 'shared KV blocks' : 'one copy per agent');
       // when the copies sit low, name them from just above the back strip instead of the empty top
-      topLab.sp.position.set(0, share ? 3.45 : 2.25, share ? 0 : -((n - 1) / 2) * 0.85);
+      topLab.at(0, share ? 2.4 : 1.55);
       usedLab.sp.visible = share;
       if (share) usedLab.set(`used by ${Math.max(1, arrived)}`);
       const frac = total / cold;
       meterBar.scale.set(Math.max(0.002, 3.0 * frac), 0.16, 0.22);
-      meterBar.position.set(1.35 - 1.5 + (3.0 * frac) / 2, -1.98, 0);
+      meterBar.position.set(1.45 - 1.5 + (3.0 * frac) / 2, -1.5, 0);
       workLab.set(`prefill work: ${total} tokens`);
 
       out({

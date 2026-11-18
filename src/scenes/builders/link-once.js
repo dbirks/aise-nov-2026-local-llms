@@ -107,7 +107,7 @@ export default function build(scene, emit) {
   scene.add(new THREE.Mesh(new THREE.TubeGeometry(cableCurve, 28, 0.055, 10, false), lam(0x2d2d2d)));
   addBox(scene, 0.14, 0.12, 0.14, 0x111111, null, -1.24, -0.34, 0.05);
   addBox(scene, 0.14, 0.12, 0.14, 0x111111, null, 0.92, -0.32, 0.05);
-  scene.add(makeLabel('Thunderbolt 4', -0.22, -0.92, 0.24, 0.34));
+  scene.add(makeLabel('TB4', -0.22, -1.2, 0.24, 0.34));
 
   // 36 weight cubes (4 cols x 3 layers x 3 rows)
   const COLS = 4, ROWS = 3, LAYERS = 3, COUNT = COLS * ROWS * LAYERS;
@@ -168,7 +168,7 @@ export default function build(scene, emit) {
 
   // Phase-specific labels
   const counterLabel = makeDynamicLabel('0 s', -0.16, 1.36, 0, 0.44);
-  const speakerSub = makeLabel('about 20 s · speaker', -0.16, 0.9, 0, 0.32);
+  const speakerSub = makeLabel('~20 s', -0.16, 0.6, 0, 0.32);
   const tokenSub = makeLabel('token ids cross', -0.16, 0.98, 0, 0.34);
   scene.add(counterLabel.sprite, speakerSub, tokenSub);
 

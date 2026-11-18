@@ -27,6 +27,7 @@ const TH = 0.16, PHI = 1.14;   // camera angles, mirrored by the screen-space la
 const RV = new THREE.Vector3(Math.cos(TH), 0, -Math.sin(TH));
 const DV = new THREE.Vector3(Math.sin(PHI) * Math.sin(TH), Math.cos(PHI), Math.sin(PHI) * Math.cos(TH));
 const UV = new THREE.Vector3().crossVectors(DV, RV);
+const TGT = new THREE.Vector3(0, 0.25, 0);   // view target, kept in sync with `view` below
 
 export default function build(scene, emit) {
   const out = emitter(emit);
@@ -36,7 +37,7 @@ export default function build(scene, emit) {
   // Labels are placed by SCREEN height (world units above/below the view target): the ortho camera
   // is elevated, so anything the scene stacks in z drifts down the screen, and text placed in world
   // y would collide with the lanes. screenY ≈ 0.9*y − 0.157*x − 0.4*z, hence the solve here.
-  function label(text, x, screenY, h = 0.34) {
+  function label(text, sx, sy, h = 0.34) {
     const cv = document.createElement('canvas');
     const g = cv.getContext('2d');
     const tex = new THREE.CanvasTexture(cv);
@@ -48,7 +49,7 @@ export default function build(scene, emit) {
     const rec = {
       sp,
       text: '',
-      at(x, screenY) { sp.position.set(x, (screenY - UV.x * x) / UV.y, 0); },
+      at(sx, sy) { sp.position.copy(TGT).addScaledVector(RV, sx).addScaledVector(UV, sy); },
       set(t) {
         rec.text = String(t);
         const font = 'bold 72px "Jersey 15", ui-monospace, monospace';
@@ -66,7 +67,7 @@ export default function build(scene, emit) {
       },
     };
     rec.set(text);
-    rec.at(x, screenY);
+    rec.at(sx, sy);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => rec.set(rec.text)).catch(() => {});
     return rec;
   }
@@ -176,7 +177,7 @@ export default function build(scene, emit) {
       unitEdge.position.copy(unitBar.position);
       const per = UNITS / b;
       unitNum.set(fmt(per));
-      unitNum.at(Math.max(-2.0, Math.min(2.55, -SPAN / 2 + w + 0.42)), -1.85);
+      unitNum.at(Math.max(-2.0, Math.min(2.6, -SPAN / 2 + w + 0.45)), -1.85);
       tokNum.set(String(b));
       caveat.sp.visible = b === MAXB;
 
