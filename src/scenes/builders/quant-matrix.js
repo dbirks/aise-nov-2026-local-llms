@@ -36,7 +36,7 @@ export default function build(scene, emit) {
   for (let i = 0; i < 4; i++) { hbars.push(bar(solid)); ybars.push(bar(solid)); yout.push(outline()); errors.push(bar(errorMat)); }
   const plane = new THREE.Mesh(box, lam(0x999999)); plane.position.set(-0.1, -0.018, 0); plane.scale.set(6.8, 0.025, 2.15); layout.add(plane);
   label('weights W', -2.5, 2.35, 0); label('input h', 0, 2.35, 0); label('output y', 2.35, 2.35, 0);
-  label('outline: original', -2.5, 1.85, 0, 0.32); label('solid: quantized', -2.5, 1.45, 0, 0.32);
+  label('outline: original', -1.6, -1.45, 0, 0.3); label('solid: quantized', -1.6, -1.85, 0, 0.3);
   label('y   yq   |error|', 2.35, 1.85, 0, 0.32);
   let codeLabel;
   function recompute() {
@@ -52,9 +52,9 @@ export default function build(scene, emit) {
       levels.add(new THREE.Line(geometry, levelMat));
     }
     if (codeLabel) { layout.remove(codeLabel); codeLabel.material.map.dispose(); codeLabel.material.dispose(); }
-    codeLabel = label(`toy int${bits} [${-qmax-1},${qmax}] × scale`, -2.5, -1.8, 0, 0.32);
+    codeLabel = label(`toy int${bits} [${-qmax-1},${qmax}] × scale`, 1.3, -1.45, 0, 0.3);
   }
-  label('not nvfp4', -2.5, -2.2, 0, 0.32);
+  label('not nvfp4', 1.3, -1.85, 0, 0.3);
   recompute();
   return {
     view: { target: [-0.15, 0, 0], radius: 40, theta: 0.13, phi: 1.12, size: 2.6 },

@@ -17,8 +17,8 @@ export default function build(scene, emit) {
     s.scale.set(h * w / 90, h, 1); s.position.set(x, y, 1.2); scene.add(s); return s;
   };
   const xs = [-4.2, -2.55, -0.9, 0.75, 2.4, 4.05];
-  const names = ['agent trajectories', 'target rollouts', 'hidden states', 'train drafter', 'convert / check', 'serve in vLLM'];
-  names.forEach((n, i) => label(n, xs[i], i % 2 === 0 ? -0.25 : -1.55, 0.3));
+  const names = ['trajectories', 'rollouts', 'hidden states', 'train', 'convert', 'serve (vLLM)'];
+  names.forEach((n, i) => label(n, xs[i], i % 2 === 0 ? 0.05 : -1.75, 0.36));
   box(0, -1.05, 10, 0.08, 1.2, mid);
   for (let j = 0; j < 3; j++) box(xs[0] + j * 0.08, -0.76 + j * 0.12, 0.8, 0.08, 0.6, dark);
   box(xs[1], -0.65, 1, 0.65, 0.55); label('target', xs[1], -0.65, 0.22).material.color.setHex(0xffffff);

@@ -11,7 +11,7 @@ export const slide: Slide = {
   chip: chip(2),
   caption: {
     title: "Four bits is not one format",
-    body: "A 4-bit number can only take a few values, so blocks of weights share a stored scale. INT4 spaces its levels evenly, NVFP4 (E2M1) does not, and weights, activations and KV each get their own precision.",
+    body: "4-bit values come from a short list, with one stored scale per block: INT4 spaces them evenly, NVFP4 (E2M1) doesn’t. Weights, activations and KV are separate dials.",
   },
   // weights dial labelled by weight format only: activation precision is its own dial (W4A16 vs W4A4 = both dials).
   controls: (base[0] as Extract<Slide, { type: 'scene' }>).controls?.map(c => c.kind === 'choice' && c.action === 'weights'
