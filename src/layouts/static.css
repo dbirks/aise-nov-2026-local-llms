@@ -153,7 +153,7 @@
 .sl-list-num { width: 90px; color: var(--ink); }
 /* CLI flags inside list text */
 .sl-code {
-  font-family: 'DejaVu Sans Mono', ui-monospace, Menlo, Consolas, monospace;
+  font-family: 'Maple Mono', ui-monospace, monospace;
   font-size: 0.82em;
   background: var(--rule-soft);
   padding: 0 10px;

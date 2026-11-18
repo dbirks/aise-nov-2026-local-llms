@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import '@fontsource/maple-mono/400.css';
 import './tokens.css';
 import { Deck } from './deck/Deck';
 import { slides as v4 } from './decks/v4';
