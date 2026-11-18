@@ -220,6 +220,87 @@ These are *not revised*. The speaker asked to review sections 03–05 next; the 
 
 **Do not apply edits to 03–05 yet.** The speaker wants to narrate his reactions to exact live wording first.
 
+## Structural update after speaker's November 18 walkthrough — proposed, not locked
+
+**Speaker's newest preference:** the talk remains **Configuring Local LLMs**, but its main headers should be audience-focused practical questions. Personal stories explain *why the question came up*, not the primary focus of the talk. The project remains a knowledge-sharing **grab bag of terms, flag examples and tips**, arranged approximately in the order the speaker learned them. Don't replace a practical question with a lofty chapter slogan. The speaker is still freely brainstorming and may reorder again.
+
+### Proposed new high-level route (supersedes earlier seven/chapter-nine skeleton for discussion only)
+
+| Proposed chapter | Audience question and purpose | What from current v2 should move there |
+| --- | --- | --- |
+| **00. Opening** | A few terms, definitions, configuration options and experiments that helped me; roughly in discovery order | \`open\`; title fixed as **Configuring Local LLMs** |
+| **01. Why run a local model?** | Cost/quotas, independence and verifiable quant/model versions, client data locality, use of smaller sufficient models, and fun | \`why-*\`; Copilot story **short** here, not a lengthy market-collapse argument |
+| **02. Getting started: from Ollama to inference engines** | What weights are; training vs inference; GGUF vs weights vs engines; speaker heard Reddit llama.cpp settings and wanted to explore | \`train-vs-infer\`, \`engines\`, \`setup-path\`; the full hardware story follows in chapter 03 |
+| **03. How do you fit a useful model on your GPU?** | Hardware choice, eGPU/locality, weight formats, dense/MoE active params, CPU offload, weight precision/AutoRound/NVFP4, total VRAM budget including required KV | \`setup-egpu\`, \`setup-slow-link\`, \`setup-hardware\`, \`gguf\`, \`embed-vec\`, \`quant-what\`, \`quant-types\`, \`nvfp4\`, \`autoround\`, \`moe\`; WSL direct I/O if there is time |
+| **04. How do you give it more context?** | Explain forward passes, how KV stores contextual attention key/value vectors instead of raw tokens, cache precision, quality/capacity trade | \`kv-cache\`; bring KV dtype comparisons from older research if useful |
+| **05. How do you run several agents at once?** | Prefill vs decode, Tensor Cores vs memory bandwidth, batching, prefix caches, vLLM hashed blocks, SGLang radix trees, llama.cpp slot reuse; actual coding harnesses | \`batching\`, \`prefix-cache\`, \`engines-cache\`; show flags/config and physical sharing caveats |
+| **06. How do you make generation faster?** | Draft/verify, native MTP, EAGLE-3, DFlash, DSpark, DFlash2, acceptance logs, extra drafter VRAM, firsthand DSpark training pipeline | \`spec-decode\`, \`mtp\`, \`block-drafters\`, \`shipped-drafters\`, \`drafter-vram\`, \`my-drafter\` |
+| **07. What else is worth experimenting with?** | NInfer/Radiance/Pennyroyal, Qwen3.8-Flash-Next, Engram vs PLE, giant sparse n-gram weight tables, VRAM/RAM/NVMe placement, Qwen4 anticipation | \`new-engines\`, \`ngram-tables\`, \`ple\` (careful: Gemma 3n PLE is a different acronym/design) |
+| **08. Sharing local models** | Hosted/cloud + local model workflow, optional LLM Collective outbound app tunnel; make models accessible without requiring everyone to self-host | \`share-why\`, \`collective\`, \`collective-request\`; keep public-safe, privacy limits explicit |
+| **09. Close / questions** | Trade-offs fit actual hardware and workload; optional Apple Silicon/MLX audience question | \`close\`, \`qa\` |
+
+**Key rearrangement:** the personal Windows eGPU comparison and GGUF/quantization now reinforce one **fit the model** problem. The introductory *inference engine* definitions should come **before** the hardware/quantization details, naturally following Ollama. KV cache deserves its own explanatory bridge from fitting weights to fitting live conversation state. Avoid implying the user’s real experiments took place in one linear order.
+
+### Answers and technical corrections that should inform proposed slide copy
+
+#### What a parameter is
+
+- A model parameter is **one learned numerical value**, usually in weight matrices, embeddings, layer norms, expert routers, expert FFNs, or other learned tensors. **27B** means about 27 billion such values, **not** 27B token types and **not** a 27-dimensional vector.
+- **Hyperparameters** are settings chosen for training or architecture, such as learning rate, width, depth or batch size. The distinction: training **changes weights** using gradients; hyperparameter tuning **changes the recipe** or architecture that determines the training run. Some meta-learning exceptions exist but aren't relevant to this talk.
+- Qwen3.8-27B's **hidden width 5,120** means a typical hidden state at a token position has 5,120 numerical components. The **vocabulary has 248,320 token IDs** (verify from the actual config used in scene), so an initial embedding table would already contain more than a billion learned values. Tokens need not be whole words.
+- **Quantization normally does not remove logical model parameters**. It changes how their values are represented/stored, often packing multiple 4-bit values into 8- or 32-bit storage elements and leaving selected layers at higher precision.
+- Hugging Face's **Safetensors parameter total can undercount a quantized model** when it tallies packed storage tensor elements rather than unpacked logical weight values. For example, [derikn's Qwen3.8-27B AWQ card](https://huggingface.co/derikn/Qwen3.8-27B-AWQ-INT4) explicitly says that 8 × INT4 weights are packed inside one INT32 tensor element and states the actual count **27,781,427,952**. [Percivio's NVFP4 card](https://huggingface.co/Percivio/Qwen3.8-27B-NVFP4-all) says each U8 byte packs two NVFP4 weights and the card therefore showed about 15B instead of 27B. This explains apparent **18B** and similar displays; the exact tally depends on format and exempt tensors. **It is not a reduction in the neural network's parameter count**.
+- Proposed visualization: 8 independent 4-bit weight slots → 1 INT32 packed element; another view groups 2 × NVFP4 inside U8; show a counter for **logical learned weights**, **tensor storage elements** and **total bytes**, each different. A very useful ~15-second moment early in quantization.
+
+#### What actually moves through memory at decode
+
+- A useful literal phrasing is **"A new token's hidden state goes through the model's layers. The GPU accesses the active weight matrices, one layer after another, to transform that state."**
+- In a resident GPU setup, weights typically stay in VRAM, but memory tiles move through GPU caches/shared memory/registers and into SM/Tensor Core computations every time they are used. It's imprecise to describe the entire checkpoint being copied across PCIe each token. For **dense** layers most feed-forward weights participate; in **MoE** only selected expert weights participate per token, plus shared layers/routers/attention.
+- GPU data **must be accessible to the operation**, but it is **not universally mandatory that every model weight and all KV reside permanently in GPU VRAM**. Some engines compute offloaded layers/experts on CPU, use GPU reads of mapped host memory, or transfer selected weights to GPU per forward pass. Some offload KV/prefix pages to CPU and restore/stage needed cache portions on demand. This can dramatically reduce speed. [vLLM weight offload](https://docs.vllm.ai/en/latest/api/vllm/) documents CPU↔GPU traffic per forward pass. [llama.cpp server options](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md) distinguish weight offload and KV offload. **Engine choice and architecture matter**.
+- Practical VRAM accounting: target weights + **active KV** + reusable prefix KV + recurrent state + runtime buffers + optional speculative drafter weights/state. The speaker's early priority was fitting the model **and** a useful context window, not cramming weights into every byte.
+- Suggested visual: resident per-layer weight slabs in VRAM, token-state vector moves through them; a second path for selected CPU-hosted MoE experts with marked slower transfer or CPU execution; a separate KV slab that grows. **Show actual tile traffic, not a token-ball physically pushing the entire model file.**
+
+#### Prefix caching and why an agent benefits
+
+- **Prefill** of an uncached prompt computes the model's internal attention key/value state for its token positions. A subsequent *compatible request with exactly matching tokenized initial prefix* can reuse already computed state and avoid re-prefilling eligible blocks.
+- The reused data is **computed contextual attention state**, not "the meaning of the prompt" or an ordered list of raw token strings. Prefix matching itself uses token IDs and relevant model/config/cache isolation metadata.
+- VLLM keeps **hash-chain-indexed full KV blocks** with refcounts and a capacity-limited pool. SGLang's **RadixAttention** organizes shared token-prefix spans in a compressed radix tree. llama.cpp has slot-aware prompt reuse but **not necessarily physical KV dedup across simultaneous slots**. Same model-server/compatible settings required; distributed replicas do not magically share KV.
+- A "50K Claude Code system prompt" is the speaker's illustrative recollection, **not a verified current token count**. Different harnesses usually have different tool schemas, chat serialization or dates and therefore might have little shared initial prefix. Don't claim all three separate harnesses only pay for the same 50K once.
+- Proposed visual: first agent fills a long token prefix with KV blocks (prefill), then agents B/C with the same initial token IDs **reference** those same eligible blocks; branches create independent new K/V, change one early token to illustrate failed reuse, and show eviction under memory pressure.
+
+#### Speculator training vs AutoRound — authoritative from the speaker's home-k8s issues
+
+- **The DSpark drafter was trained using \`vllm-project/speculators\`, including a patched \`dbirks/speculators\` fork** as documented in [home-k8s #59](https://github.com/dbirks/home-k8s/issues/59), [#60](https://github.com/dbirks/home-k8s/issues/60), [#72](https://github.com/dbirks/home-k8s/issues/72), and [#80](https://github.com/dbirks/home-k8s/issues/80). Target model \`unsloth/Qwen3.6-27B-NVFP4\`; extract target hidden states, train the draft network/heads, convert checkpoint, serve and measure acceptance. Its target happened to be **NVFP4-quantized**; that doesn't make \`AutoRound\` the drafter trainer.
+- **AutoRound** was used **separately** for quantizing main model checkpoints: [home-k8s #84](https://github.com/dbirks/home-k8s/issues/84), [#110](https://github.com/dbirks/home-k8s/issues/110). Some \`AutoRound\` exports use a format compatible with **LLM Compressor**, which is another quantization toolkit ([#109](https://github.com/dbirks/home-k8s/issues/109)). The speaker **should not** give an example of "training a DSpark with LLM Compressor/AutoRound" unless describing a separate, verified quantization step of weights.
+- The training story has a useful honest lesson: target-generated on-policy trajectories, rotary/hidden-state compatibility, checkpoint conversion, **teacher-forced vs free-running acceptance** and careful held-out evaluation. The later **from-scratch agentic-data test was not better** than coding-only data in its conditions; preserve this finding rather than a simple success story.
+- A real practical slide could say: **"If you're curious about training a drafter: the vLLM project's \`speculators\` library is what I used."** Add a separate slide for **"If you're curious about quantizing model weights: I used AutoRound."** Never imply Speculators natively *contains* AutoRound.
+
+#### Other speaker details to preserve for late chapters
+
+- **Qwen3.8-27B** was the local model the speaker returned to repeatedly for roughly a couple months; don't frame his setup as constant model-switching.
+- **Qwen3.8-Flash-Next** felt snappier to the speaker because of its MoE/active-compute profile; architecture, engine, loading/offload and workload still matter, and **the official card** says ~125B transformer parameters / ~6B activated per token **plus ~51B n-gram embeddings and 4B MTP**. Different actual response rates require measured comparisons. Source [Qwen official model card](https://huggingface.co/Qwen/Qwen3.8-Flash-Next).
+- **Engram / PLE lookup tables are learned model weights.** They persist across requests; **a subset of rows is accessed at every newly processed position**, both during initial prefill and later decoding. They are not a one-time first-prompt scan. Reusing an already-computed prefix avoids redoing those model passes. **Pennyroyal's NVMe PLE is an indexed row-access path, not generic MoE weights offloaded to SSD.**
+- **Qwen4:** The speaker was anticipating the next generation. **As of November 18, 2026, Qwen announced Qwen4-Max on November 16, 2026** as a hosted model; no official local open-weight Qwen4 family checkpoint is verified as released here. Source [Qwen Qwen4-Max announcement](https://qwen.ai/blog/qwen4-max). Phrase: **"I'm curious to see what open-weight Qwen4 models bring,"** not "Qwen4 hasn't released at all" or a prediction of exact future release/model sizes.
+- The speaker uses **Opus 5.5 with the pi agent harness and local models in a hybrid workflow**. **Open architectural question:** which agent delegates to which model and at which steps, and whether any client-controlled data is sent to a hosted model. Draw no call graph until verified. Sensitive client data that cannot leave Windows laptop must not be shown transmitted to a cloud/subscribed endpoint.
+- At end, an optional **LLM Collective** example connects independent servers through authenticated **outbound WSS + Yamux** to the central Kubernetes gateway, making public-safe model routing possible without VPN membership. This is remote inference, **not** pooled VRAM or a substitute for a strict local-data boundary.
+
+### Specific copy risks to flag for the coding agent (review, don't silently modify)
+
+- The current \`setup-why\` Copilot slide **duplicates** the short personal price-change motivation now proposed under "Why run a local model?". Merge or cut rather than spending two slides on the same trigger.
+- Existing "getting a smart enough model into VRAM" slides claim **"each word"** becomes a vector; prefer token ID and distinguish static embedding from contextual hidden states.
+- Current "KV cache keeps that work ... one small step" can imply zero old-cache read cost; it **avoids recomputation of earlier positions** but attention still reads cached history.
+- Current batching headline **"one read of the weights, several requests"** and body **"costs little extra"** overstate the ease of all batching cases; more sequences mean more arithmetic, KV/state, scheduling and possibly compute-bound execution. Reuse of weight tiles per batch is the accurate mechanism.
+- "The drafter needs its **own full KV**" cannot be generalized to every MTP/DFlash/DSpark implementation; method-specific state/workspaces vary.
+- Existing PLE slides show **Gemma 3n's per-layer embeddings** in one variant and **Qwen's n-gram learned-memory/PLE** in another. They use the same acronym for **different architectures**. Label and separate them rather than claiming one is an alternate visualization of the other.
+- Source comparisons and performance must distinguish 5090 **rated GDDR bandwidth** from actual WSL eGPU transfer speed, and measured tok/s from speaker observations.
+
+### Workflow for next review pass
+
+1. Continue working with the speaker **chapter titles and a few sections at a time**, not wholesale rewriting the code.
+2. Treat all the above as **PROPOSED STRUCTURE**, not consent to change a live route; explicit title and tone are approved.
+3. As the speaker narrates, capture the intended learning question, what should be shown visually, one ordinary-language headline and one nuance, plus desired config flags.
+4. When speaker approves a set, give coding agent a **copy-only diff** mapping old \`src/slides/v2/*.ts\` IDs to new strings. Avoid touching live 3D builders.
+
 ## Next coordination step
 
 1. Speaker reads and corrects **proposed copy for 00–02**, then reads 03–05 exact live text/variants.
