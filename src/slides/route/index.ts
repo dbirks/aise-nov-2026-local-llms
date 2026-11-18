@@ -1,7 +1,7 @@
 import type { Slide } from '../../deck/types';
 
 // Handoff route (docs/presentation-production-handoff.md): one file per scene ID, `export const slide: Slide`.
-// File name = scene ID key (a01 … g01). src/slides.ts orders them; a missing file is skipped (`r()`).
+// File name = scene ID key (a01 … g01). src/decks/route-v1.ts orders them (src/slides.ts is the new deck); a missing file is skipped (`r()`).
 const mods = import.meta.glob<{ slide: Slide }>('./[a-g][0-9][0-9].ts', { eager: true });
 
 export const route: Record<string, Slide> = Object.fromEntries(
