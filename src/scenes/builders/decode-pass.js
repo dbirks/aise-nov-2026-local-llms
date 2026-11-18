@@ -1,8 +1,9 @@
 // Scene `decode-pass` — one decode pass, from memory to token (README "Scene F" brainstorm).
 //
 // A schematic GPU card: a light memory slab at the back carrying, per layer row, a strip of FFN
-// weight tiles + one attention-weight tile and a row of stored KV blocks; a row of compute cores
-// at the front; six layer plates stacked above. One generated token walks the tower:
+// weight tiles + one attention-weight tile and a row of stored KV blocks (or, in 'hybrid' mode,
+// a fixed-size Gated DeltaNet recurrent state plate on 4 of 6 layers with 3:1 spacing); a row of
+// compute cores at the front; six layer plates stacked above. One generated token walks the tower:
 // embedding → per layer, its weight tiles stream down as dark packets from the slab to the cores
 // (dense: all 8 FFN tiles stream; MoE: only 2 of 8 dim expert tiles are selected and only those
 // stream), its query reads the already-stored KV blocks (read packets + row flash), the residual
@@ -35,6 +36,8 @@ const yOf = l => -1.4 + l * 0.78;    // layer-plate height
 const tileX = i => -0.86 + i * 0.42; // expert tiles on the slab
 const ATTN_X = -1.62;                // attention-weight tile
 const kvX = j => -3.62 + j * 0.24;   // KV block row on the slab
+const STATE_X = -2.90;               // center of fixed recurrent-state plate (hybrid DeltaNet)
+const STATE_COLS = 4, STATE_ROWS = 2, STATE_CUBES = STATE_COLS * STATE_ROWS;
 const coreX = i => -0.6 + i * 0.75;
 const barX = k => -0.55 + k * 0.42;
 const CORE_Y = -2.1;
@@ -47,7 +50,13 @@ const cTileOn = new THREE.Color(0x212121), cTileOff = new THREE.Color(0xc6c6c6);
 const cCoreIdle = new THREE.Color(0x9f9f9f);
 const cKv = new THREE.Color(0x787878), cKvRead = new THREE.Color(0x101010);
 const cNew = new THREE.Color(0x141414);
+const cStatePlate = new THREE.Color(0x222222), cStateFlash = new THREE.Color(0x787878);
+const STATE_SHADES = [0x4c4c4c, 0x767676, 0xa8a8a8, 0xd8d8d8].map(h => new THREE.Color(h));
 const tmp = new THREE.Color(), tmp2 = new THREE.Color();
+
+// Hybrid layout (3:1 Gated DeltaNet : full attention across 6 schematic layers): layers 1 and 5
+// are full attention (2 of 6); layers 0, 2, 3, 4 are Gated DeltaNet (fixed recurrent state).
+const isFullAttn = (arch, l) => arch !== 'hybrid' || l === 1 || l === 5;
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const seg = (t, a, b) => clamp01((t - a) / (b - a));
@@ -102,6 +111,16 @@ export default function build(scene, emit) {
   kv.frustumCulled = false;
   scene.add(kv);
 
+  // ── Gated DeltaNet fixed recurrent-state plates + shuffling inner cubes ────
+  const statePlates = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), lam(0xffffff), LAYERS);
+  statePlates.frustumCulled = false;
+  statePlates.visible = false;
+  scene.add(statePlates);
+  const stateCubes = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), lam(0xffffff), LAYERS * STATE_CUBES);
+  stateCubes.frustumCulled = false;
+  stateCubes.visible = false;
+  scene.add(stateCubes);
+
   // ── travelling packets (weight streams, kv reads, kv append), one pool ─────
   const NP = 24;
   const packets = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), lam(0xffffff), NP);
@@ -150,12 +169,15 @@ export default function build(scene, emit) {
 
   // ── labels (kept well inside the wall/floor: thin dark text vanishes over the lightest tone) ──
   label('kv cache', 0.28).position.set(-2.85, 3.7, Z_MOUNT + 0.06);
+  const stateLbl = label('recurrent state', 0.19);
+  stateLbl.position.set(STATE_X - 0.10, 2.13, Z_MOUNT + 0.18);
+  stateLbl.visible = false;
   label('weights', 0.28).position.set(1.55, 3.72, Z_MOUNT + 0.06);
   label('cores', 0.28).position.set(3.0, -2.18, Z_FRONT + 0.55);
   label('logits', 0.28).position.set(2.5, 4.12, Z_MOUNT + 0.06);
 
   // ── state ──────────────────────────────────────────────────────────────────
-  let T = 0, playing = true, arch = 'dense', stepTo = null, stepWrap = false;
+  let T = 0, playing = true, arch = 'dense', stepTo = null, stepWrap = false, tokPass = 0;
 
   function pushPacket(pk, sx, sy, sz, dx, dy, dz, p, size, col) {
     const s = p > 0 && p < 1 ? size * Math.min(1, Math.min(p, 1 - p) * 9) : 0.001;
@@ -168,10 +190,17 @@ export default function build(scene, emit) {
   return {
     view: { target: [-0.4, 1.0, 0], radius: 40, theta: 0.6, phi: 1.18, size: 4.35 },
     update(dt) {
-      if (playing) T = (T + dt) % LOOP;
-      else if (stepTo !== null) {
+      if (playing) {
+        const prevT = T;
+        T = (T + dt) % LOOP;
+        if (T < prevT) tokPass++;
+      } else if (stepTo !== null) {
         T += dt * 4.5;
-        if (T >= stepTo) { T = stepWrap ? 0 : stepTo; stepTo = null; stepWrap = false; }
+        if (T >= stepTo) {
+          if (stepWrap) { T = 0; tokPass++; }
+          else T = stepTo;
+          stepTo = null; stepWrap = false;
+        }
       }
 
       // which layer's beat is running (pure function of T)
@@ -187,7 +216,7 @@ export default function build(scene, emit) {
         const wr = isActive && au >= 0.42 && au < 0.72 ? Math.sin(Math.PI * seg(au, 0.42, 0.72)) : 0;
         for (let i = 0; i < EXPERTS; i++) {
           const idx = l * EXPERTS + i;
-          const on = arch === 'dense' || i === s0[0] || i === s0[1];
+          const on = arch !== 'moe' || i === s0[0] || i === s0[1];
           selAmt[idx] += ((on ? 1 : 0) - selAmt[idx]) * ease(dt, 6);
           tmp.copy(cTileOff).lerp(cTileOn, selAmt[idx]);
           if (isActive && on && au < 0.5) tmp.lerp(cInk, 0.55 * seg(au, 0, 0.5));   // source glows while streaming
@@ -197,13 +226,13 @@ export default function build(scene, emit) {
           tiles.setColorAt(l * (EXPERTS + 1) + i, tmp);
           // stream this tile's bytes while its layer runs
           if (isActive && on) {
-            const n = arch === 'dense' ? EXPERTS : 2;
-            const k = arch === 'dense' ? i : (i === s0[0] ? 0 : 1);
+            const n = arch === 'moe' ? 2 : EXPERTS;
+            const k = arch === 'moe' ? (i === s0[0] ? 0 : 1) : i;
             const start = 0.4 * (k / n), p = seg(au / 0.4, start, start + 0.6);
             pushPacket(pk++, x, y, Z_MOUNT + 0.05, coreX(k % CORES), CORE_Y + 0.34, Z_FRONT - 0.2, p, 0.17, cDark);
           }
         }
-        // attention-weight tile: always active, streams with the beat
+        // attention / linear-mixer weight tile: always active, streams with the beat
         tmp.copy(cTileOn).lerp(cInk, isActive && au < 0.5 ? 0.55 * seg(au, 0, 0.5) : 0);
         P.set(ATTN_X, yOf(l), Z_MOUNT); S.set(0.4, 0.44, 0.13);
         tiles.setMatrixAt(l * (EXPERTS + 1) + EXPERTS, M.compose(P, Q, S));
@@ -212,37 +241,94 @@ export default function build(scene, emit) {
           const p = seg(au / 0.4, 0, 0.6);
           pushPacket(pk++, ATTN_X, yOf(l), Z_MOUNT + 0.05, coreX(2), CORE_Y + 0.34, Z_FRONT - 0.2, p, 0.19, cDark);
         }
-        // ── KV row: stored blocks dim-dark, flash when this layer reads them
-        for (let j = 0; j < KVN; j++) {
-          const idx = l * KVN + j;
-          const isNew = j === KVN - 1;
-          let s = 0.21, y = yOf(l);
-          if (isNew) {
-            const ua = T - A0, st = 0.06 * l;
-            s = 0.21 * seg(ua, st + 0.5, st + 0.72);          // appears as the append packet lands
+
+        const fullAttn = isFullAttn(arch, l);
+        // ── KV row (full-attention layers) vs fixed recurrent-state plate (Gated DeltaNet) ──
+        if (fullAttn) {
+          for (let j = 0; j < KVN; j++) {
+            const idx = l * KVN + j;
+            const isNew = j === KVN - 1;
+            let s = 0.21, y = yOf(l);
+            if (isNew) {
+              const ua = T - A0, st = 0.06 * l;
+              s = 0.21 * seg(ua, st + 0.5, st + 0.72);          // appears as the append packet lands
+            }
+            tmp.copy(cKv);
+            if (isNew) tmp.copy(cNew);
+            else if (wr > 0 && j > 0) tmp.lerp(cKvRead, wr);
+            P.set(kvX(j), y + 0.11 * s, Z_MOUNT + 0.1);
+            S.set(s * 0.9, s * 1.6, s * 0.9);
+            kv.setMatrixAt(idx, M.compose(P, Q, S));
+            kv.setColorAt(idx, tmp);
           }
-          tmp.copy(cKv);
-          if (isNew) tmp.copy(cNew);
-          else if (wr > 0 && j > 0) tmp.lerp(cKvRead, wr);
-          P.set(kvX(j), y + 0.11 * s, Z_MOUNT + 0.1);
-          S.set(s * 0.9, s * 1.6, s * 0.9);
-          kv.setMatrixAt(idx, M.compose(P, Q, S));
-          kv.setColorAt(idx, tmp);
-        }
-        // append packet for this layer, during the append phase
-        if (T >= A0 && T < A1) {
-          const ua = T - A0, st = 0.06 * l, p = seg(ua, st, st + 0.7);
-          pushPacket(pk++, TOWER_X, 2.85, Z_TOWER, kvX(KVN - 1), yOf(l) + 0.2, Z_MOUNT + 0.1, p, 0.16, cDark);
-        }
-        // kv-read packets: three stored blocks stream to the cores
-        if (isActive && au >= 0.42 && au < 0.66) {
-          tmp2.setHex(0x3c3c3c);
-          for (const [n2, j] of [[0, 1], [1, 3], [2, 5]]) {
-            const p = seg((au - 0.42) / 0.24, 0.3 * (n2 / 3), 0.3 * (n2 / 3) + 0.7);
-            pushPacket(pk++, kvX(j), yOf(l) + 0.2, Z_MOUNT + 0.15, coreX(1 + n2), CORE_Y + 0.34, Z_FRONT - 0.2, p, 0.14, tmp2);
+          // append packet for this layer, during the append phase
+          if (T >= A0 && T < A1) {
+            const ua = T - A0, st = 0.06 * l, p = seg(ua, st, st + 0.7);
+            pushPacket(pk++, TOWER_X, 2.85, Z_TOWER, kvX(KVN - 1), yOf(l) + 0.2, Z_MOUNT + 0.1, p, 0.16, cDark);
+          }
+          // kv-read packets: three stored blocks stream to the cores
+          if (isActive && au >= 0.42 && au < 0.66) {
+            tmp2.setHex(0x3c3c3c);
+            for (const [n2, j] of [[0, 1], [1, 3], [2, 5]]) {
+              const p = seg((au - 0.42) / 0.24, 0.3 * (n2 / 3), 0.3 * (n2 / 3) + 0.7);
+              pushPacket(pk++, kvX(j), yOf(l) + 0.2, Z_MOUNT + 0.15, coreX(1 + n2), CORE_Y + 0.34, Z_FRONT - 0.2, p, 0.14, tmp2);
+            }
+          }
+          if (arch === 'hybrid') {
+            P.set(0, -9, 0); S.setScalar(0.001);
+            statePlates.setMatrixAt(l, M.compose(P, Q, S));
+            statePlates.setColorAt(l, cStatePlate);
+            for (let c = 0; c < STATE_CUBES; c++) {
+              stateCubes.setMatrixAt(l * STATE_CUBES + c, M.compose(P, Q, S));
+              stateCubes.setColorAt(l * STATE_CUBES + c, STATE_SHADES[0]);
+            }
+          }
+        } else {
+          // hide KV blocks on Gated DeltaNet layers
+          for (let j = 0; j < KVN; j++) {
+            P.set(0, -9, 0); S.setScalar(0.001);
+            kv.setMatrixAt(l * KVN + j, M.compose(P, Q, S));
+            kv.setColorAt(l * KVN + j, cKv);
+          }
+          // one fixed-size dark state plate updated in place (flashes + inner cubes shuffle)
+          P.set(STATE_X, yOf(l), Z_MOUNT + 0.04);
+          S.set(1.24, 0.38, 0.10);
+          statePlates.setMatrixAt(l, M.compose(P, Q, S));
+          tmp.copy(cStatePlate).lerp(cStateFlash, wr);
+          statePlates.setColorAt(l, tmp);
+
+          const updated = (al > l) || (T >= L1) || (isActive && au >= 0.72);
+          const updU = isActive && au >= 0.42 && au < 0.72 ? seg(au, 0.42, 0.72) : (updated ? 1 : 0);
+          const shuffleW = isActive && au >= 0.42 && au < 0.72 ? Math.sin(Math.PI * updU) : 0;
+          for (let row = 0; row < STATE_ROWS; row++) {
+            for (let col = 0; col < STATE_COLS; col++) {
+              const c = row * STATE_COLS + col;
+              const sA = (tokPass * 3 + l * 2 + col * 5 + row * 3) % STATE_SHADES.length;
+              const sB = ((tokPass + 1) * 3 + l * 2 + col * 5 + row * 3) % STATE_SHADES.length;
+              tmp.copy(STATE_SHADES[sA]).lerp(STATE_SHADES[sB], updU);
+              const cx = STATE_X + (col - 1.5) * 0.25 + shuffleW * 0.11 * (col % 2 === 0 ? 1 : -1);
+              const cy = yOf(l) + (row - 0.5) * 0.14 + shuffleW * 0.045 * (row === 0 ? 1 : -1);
+              const cz = Z_MOUNT + 0.12 + shuffleW * 0.04;
+              const cs = 1 + 0.22 * shuffleW;
+              P.set(cx, cy, cz);
+              S.set(0.15 * cs, 0.10 * cs, 0.09 * cs);
+              stateCubes.setMatrixAt(l * STATE_CUBES + c, M.compose(P, Q, S));
+              stateCubes.setColorAt(l * STATE_CUBES + c, tmp);
+            }
+          }
+          // in-place read from state plate and write-back update (never grows)
+          if (isActive && au >= 0.40 && au < 0.56) {
+            tmp2.setHex(0x3c3c3c);
+            pushPacket(pk++, STATE_X, yOf(l), Z_MOUNT + 0.15, coreX(2), CORE_Y + 0.34, Z_FRONT - 0.2, seg(au, 0.40, 0.56), 0.15, tmp2);
+          } else if (isActive && au >= 0.56 && au < 0.72) {
+            pushPacket(pk++, coreX(2), CORE_Y + 0.34, Z_FRONT - 0.2, STATE_X, yOf(l), Z_MOUNT + 0.15, seg(au, 0.56, 0.72), 0.15, cDark);
           }
         }
       }
+      const isHybrid = arch === 'hybrid';
+      statePlates.visible = isHybrid;
+      stateCubes.visible = isHybrid;
+      stateLbl.visible = isHybrid;
       for (; pk < NP; pk++) { P.set(0, -9, 0); S.setScalar(0.001); packets.setMatrixAt(pk, M.compose(P, Q, S)); }
       tiles.instanceMatrix.needsUpdate = true;
       kv.instanceMatrix.needsUpdate = true;
@@ -250,6 +336,12 @@ export default function build(scene, emit) {
       if (tiles.instanceColor) tiles.instanceColor.needsUpdate = true;
       if (kv.instanceColor) kv.instanceColor.needsUpdate = true;
       if (packets.instanceColor) packets.instanceColor.needsUpdate = true;
+      if (isHybrid) {
+        statePlates.instanceMatrix.needsUpdate = true;
+        stateCubes.instanceMatrix.needsUpdate = true;
+        if (statePlates.instanceColor) statePlates.instanceColor.needsUpdate = true;
+        if (stateCubes.instanceColor) stateCubes.instanceColor.needsUpdate = true;
+      }
 
       // ── cores: darken while the active layer computes ─────────────────────
       const pulse = al >= 0 && au >= 0.38 && au <= 0.72 ? Math.sin(Math.PI * seg(au, 0.38, 0.72)) : 0;
@@ -285,7 +377,11 @@ export default function build(scene, emit) {
 
       // ── readout ───────────────────────────────────────────────────────────
       let ro;
-      if (T < E0) ro = 'token embedding → residual stream starts';
+      if (arch === 'hybrid') {
+        const baseRo = 'hybrid · kv rows grow on 2 of 6 layers · state fixed on 4';
+        if (al >= 0) ro = `${baseRo} · L${al + 1} ${isFullAttn(arch, al) ? 'attn' : 'deltanet'}`;
+        else ro = baseRo;
+      } else if (T < E0) ro = 'token embedding → residual stream starts';
       else if (al >= 0) {
         const sub = au < 0.4 ? 'stream' : au < 0.62 ? 'kv read' : 'residual up';
         ro = `layer ${al + 1}/${LAYERS} · weights streamed ${streamPct}% · ${sub}`
@@ -302,7 +398,10 @@ export default function build(scene, emit) {
         playing = false;
         const nx = BEATS.find(b => b > T + 1e-3);
         stepTo = nx ?? LOOP; stepWrap = nx == null;
-      } else if (name === 'arch') arch = String(arg) === 'moe' ? 'moe' : 'dense';
+      } else if (name === 'arch') {
+        const a = String(arg);
+        arch = a === 'moe' || a === 'hybrid' ? a : 'dense';
+      }
     },
   };
 }
