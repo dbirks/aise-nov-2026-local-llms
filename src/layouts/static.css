@@ -151,6 +151,14 @@
   padding-bottom: 14px;
 }
 .sl-list-num { width: 90px; color: var(--ink); }
+/* CLI flags inside list text */
+.sl-code {
+  font-family: 'DejaVu Sans Mono', ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.82em;
+  background: var(--rule-soft);
+  padding: 0 10px;
+}
+.sl-list-note { margin-top: 36px; font-size: 34px; color: var(--ink-2); }
 /* sub-bullets: smaller text, hollow square, under the parent line */
 .sl-list-subs { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; font-size: 44px; color: var(--ink-2); }
 .sl-list-sub { display: flex; }
