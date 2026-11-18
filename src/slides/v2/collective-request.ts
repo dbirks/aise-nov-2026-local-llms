@@ -1,13 +1,4 @@
 import type { Slide } from '../../deck/types';
-import { head } from './_ch';
-
-// PLACEHOLDER until P3 builds the 3D variants. must not imply: pooled VRAM or one model split across machines
-export const slides: Slide[] = [{
-  id: "collective-request",
-  type: 'list',
-  header: head(9),
-  title: "What a request does",
-  items: ["Your API key shows the models on offer at /models.", "Pick one, and the gateway sends the request to the machine running it."],
-  example: true,
-  notes: "must not imply: pooled VRAM or one model split across machines",
-}];
+import { chip } from './_ch';
+import { meta } from '../route/_meta';
+export const slides: Slide[] = [{ id:'collective-request-a', variant:'A', type:'scene', scene:'collective-route', chip:chip(9), caption:{title:'What a request does',body:'Your API key lists the models on offer at /models. Pick one, and the gateway sends the request down the tunnel of the machine running it.'}, controls:[{kind:'choice',action:'model',label:'model',options:[{label:'model-a 27B',value:'model-a 27B'},{label:'model-b 35B-A3B',value:'model-b 35B-A3B'},{label:'model-c 8B',value:'model-c 8B'}],initial:'model-a 27B'}], notes: meta({ id: 'G01', claim: 'A gateway routes each request to one independent machine over its outbound tunnel', evidence: ['MECHANISM'], simulated: 'Generic model names, machine count, streams and animation timing', not: 'pooled VRAM; one model split across hosts; inbound ports open at home; data stays on the caller’s laptop', sources: ['speaker description (deck v2 plan)', 'https://github.com/hashicorp/yamux'] }), }];

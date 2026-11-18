@@ -1,0 +1,4 @@
+import type { Slide } from '../../deck/types';
+import { chip } from './_ch';
+import { meta } from '../route/_meta';
+export const slides: Slide[] = [{ id:'collective-request-b', variant:'B', type:'scene', scene:'collective-models', chip:chip(9), caption:{title:'One model, one machine',body:"The gateway picks a machine; it doesn't split a model across them. If that machine goes offline, its models drop off /models."}, controls:[{kind:'toggle',action:'offline',label:'home 2 offline',initial:false}], notes: meta({ id: 'G01', claim: 'A gateway routes each request to one independent machine over its outbound tunnel', evidence: ['MECHANISM'], simulated: 'Generic model names, machine count, streams and animation timing', not: 'pooled VRAM; one model split across hosts; inbound ports open at home; data stays on the caller’s laptop', sources: ['speaker description (deck v2 plan)', 'https://github.com/hashicorp/yamux'] }), }];
