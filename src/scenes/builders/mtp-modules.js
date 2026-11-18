@@ -37,7 +37,7 @@ export default function build(scene, emit) {
   slab(1.65, -1.45, 1.5, 0.18);
   label('embedding', 1.65, -1.86, 0.48);
   line([[1.65, -1.35, 0], [2.85, -1.35, 0], [2.85, -0.25, 0], [2.45, -0.25, 0]], true);
-  label('shared', 3.45, -0.82, 0.47);
+  label('shared', 3.45, -1.18, 0.47);
   const loop = arrow(2.55, 0.35, 2.55, 0.85);
   const loopLine = line([[2.55, 0.85, 0], [3.35, 0.85, 0], [3.35, -0.1, 0], [2.55, -0.1, 0]]);
   const loopLabel = label('state + token', 2.95, 1.28, 0.47);

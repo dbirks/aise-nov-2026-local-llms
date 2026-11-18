@@ -27,7 +27,7 @@ export default function build(scene, emit) {
   block(0, 0, 0, 2.5, 1.75, 0.12, light, table);
   for (let i = 0; i < 6; i++) block(-1.0 + i * 0.4, 0, 0.1, 0.035, 1.75, 0.08, dark, table);
   block(0, 0, 0.2, 2.5, 0.13, 0.08, dark, table);
-  label('256 numbers / band', 0, -1.22, 0, 0.44, table);
+  label('256 per band', 0, -1.22, 0, 0.44, table);
   for (let i = 0; i < 6; i++) {
     const y = -1.35 + i * 0.48;
     block(2.05, y, 0, 1.6, 0.13, 0.7, mid);

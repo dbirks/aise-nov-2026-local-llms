@@ -20,7 +20,7 @@ export default function build(scene, emit) {
   label('p target', -2.85, -0.35, 0, 0.46);
   label('resample', -2.85, -1.75, 0, 0.46);
   label('toy probabilities', 0.25, 2.45, 0, 0.48);
-  label('accept p / q', 3.0, 1.65, 0, 0.46);
+  label('accept p/q', 2.95, 1.65, 0, 0.46);
   for (let i = 0; i < 6; i++) {
     const x = -1.45 + i * 0.74;
     label(words[i], x, -2.55, 0, 0.45);
@@ -29,7 +29,7 @@ export default function build(scene, emit) {
     markers.push(mesh(dark));
   }
   const gauge = mesh(dark), gaugeBack = mesh(pale);
-  gaugeBack.position.set(3.2, -0.05, 0); gaugeBack.scale.set(0.65, 2.2, 0.15);
+  gaugeBack.position.set(3.05, -0.05, 0); gaugeBack.scale.set(0.65, 2.2, 0.15);
   const heights = Array.from({ length: 6 }, () => [0, 0, 0]);
   return {
     view: { target: [0.1, 0, 0], radius: 40, theta: 0.12, phi: 1.45, size: 3.4 },
@@ -49,7 +49,7 @@ export default function build(scene, emit) {
         }
         markers[i].position.set(x, -2.20, 0.3); markers[i].scale.set(0.50, 0.08, 0.2); markers[i].visible = i === idx;
       }
-      gauge.scale.set(0.5, Math.max(0.005, 2.2 * prob), 0.25); gauge.position.set(3.2, -1.15 + 1.1 * prob, 0.2);
+      gauge.scale.set(0.5, Math.max(0.005, 2.2 * prob), 0.25); gauge.position.set(3.05, -1.15 + 1.1 * prob, 0.2);
       out({ playing, readout: `simulated · drafted "${word}" · p ${p[idx].toFixed(2)} q ${q[idx].toFixed(2)} · accept ${Math.round(prob * 100)}%${prob < 1 ? ' · else resample' : ''}` });
     },
     action(name, arg) {

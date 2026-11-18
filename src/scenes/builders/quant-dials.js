@@ -43,13 +43,13 @@ export default function build(scene, emit) {
   const pale = lam(0xd9d9d9);
   const edgeMat = new THREE.LineBasicMaterial({ color: 0x161616 });
   const hatchMat = new THREE.MeshLambertMaterial({ map: hatchTexture() });
-  const WX = -2.2, AX = 0.35, KX = 3.0;
+  const WX = -2.0, AX = 0.35, KX = 2.75;
 
   function drawLines(c, text) {
     const lines = String(text).split('\n'), g = c.getContext('2d');
     g.clearRect(0, 0, c.width, c.height); g.font = `bold ${FS}px sans-serif`;
-    g.fillStyle = '#111111'; g.textBaseline = 'middle';
-    lines.forEach((l, i) => g.fillText(l, 12, LH * i + LH / 2));
+    g.fillStyle = '#111111'; g.textBaseline = 'middle'; g.textAlign = 'center';
+    lines.forEach((l, i) => g.fillText(l, c.width / 2, LH * i + LH / 2));
   }
   // height = total sprite height; a 2-line label uses height ≈ 2 × single-line height (≥ 0.13 × view.size per line)
   function label(text, x, y, z, height = 0.42, parent = scene) {
@@ -80,8 +80,8 @@ export default function build(scene, emit) {
 
   // Floor
   const floor = new THREE.Mesh(box, pale);
-  floor.position.set(0.25, -0.035, 0.3);
-  floor.scale.set(7.4, 0.07, 6.5);
+  floor.position.set(0.2, -0.035, 0.4);
+  floor.scale.set(6.7, 0.07, 6.0);
   scene.add(floor);
 
   // One column: body box + dark front divider lines counting bit planes (height = bit-width).
@@ -112,9 +112,9 @@ export default function build(scene, emit) {
       if (on) col.dividers[j].position.set(col.x, y, fz);
     }
   }
-  const cW = column(WX, 2.3); // weights
+  const cW = column(WX, 2.1); // weights
   const cA = column(AX, 0.18); // activations wall
-  const cK = column(KX, 1.8); // kv strip
+  const cK = column(KX, 1.2); // kv strip
 
   // NVFP4 block-scale hatch plate sitting on top of the weights slab
   const scalePlate = new THREE.Mesh(box, hatchMat);
@@ -190,15 +190,15 @@ export default function build(scene, emit) {
     if (kind === 'dense') {
       const plate = new THREE.Mesh(box, hatchMat);
       plate.position.set(RX, RY, 0);
-      plate.scale.set(2.5, 0.12, 0.3);
+      plate.scale.set(2.3, 0.12, 0.3);
       ruler.add(plate);
-      label('too dense\nto draw', RX, -0.42, 0, 0.76, ruler);
-      dr('bf16\n16 dense levels', RX, 0.5, 0, 0.76);
+      label('too dense\nto draw', RX, -0.44, 0, 0.76, ruler);
+      dr('bf16\n16 dense levels', RX, 0.62, 0, 0.76);
       return;
     }
     const track = new THREE.Mesh(box, mid);
     track.position.set(RX, RY, 0);
-    track.scale.set(2.5, 0.05, 0.3);
+    track.scale.set(2.3, 0.05, 0.3);
     ruler.add(track);
     const ticks = kind === 'int4'
       ? Array.from({ length: 16 }, (_, i) => ({ t: (i - 8) / 8.5 })) // int levels -8..7, even spacing
@@ -206,13 +206,13 @@ export default function build(scene, emit) {
     for (const { t } of ticks) {
       const nub = new THREE.Mesh(box, dark);
       nub.scale.set(0.045, 0.15, 0.12);
-      nub.position.set(RX + t * 1.22, RY + 0.1, 0);
+      nub.position.set(RX + t * 1.05, RY + 0.1, 0);
       ruler.add(nub);
     }
     const nums = kind === 'int4' ? [-8, 0, 7] : [-6, 0, 6];
     const map = kind === 'int4' ? (v => v / 8.5) : (v => v / 6.4);
-    for (const v of nums) label(String(v), RX + map(v) * 1.22, -0.42, 0, 0.4, ruler);
-    dr(kind === 'int4' ? 'int4\n16 even levels' : 'nvfp4\nuneven levels', RX, 0.5, 0, 0.76);
+    for (const v of nums) label(String(v), RX + map(v) * 1.05, -0.44, 0, 0.4, ruler);
+    dr(kind === 'int4' ? 'int4\n16 even levels' : 'nvfp4\nuneven levels', RX, 0.62, 0, 0.76);
   }
   function WPX() {
     const t = [];
@@ -221,10 +221,10 @@ export default function build(scene, emit) {
   }
 
   // Static labels: column names sit on the floor front edge, current-precision tags below them
-  label('weights', WX, 0.02, 3.35, 0.42);
-  label('activations', AX, 0.02, 3.35, 0.42);
-  label('kv cache', KX, 0.02, 3.35, 0.42);
-  label('grows with\ncontext', KX, 2.5, 0.35, 0.76);
+  label('weights', WX, 0.02, 3.35, 0.38);
+  label('activations', AX, 0.02, 3.35, 0.38);
+  label('kv cache', KX, 0.02, 3.35, 0.38);
+  label('grows with\ncontext', KX - 0.25, 2.95, 0.35, 0.76);
 
   // State (initial must match the slide control initials)
   let w = 'int4', kv = 'bf16';
@@ -242,7 +242,7 @@ export default function build(scene, emit) {
   refreshTags();
 
   return {
-    view: { target: [0.1, 0.45, 0], radius: 40, theta: 0.12, phi: 1.12, size: 2.9 },
+    view: { target: [0.1, 0.45, 0], radius: 40, theta: 0.08, phi: 1.12, size: 2.9 },
     update(dt) {
       if (playing) { clock += dt; flow += dt * 0.09; }
       const k = ease(dt, 6);
@@ -259,8 +259,8 @@ export default function build(scene, emit) {
       scalePlate.visible = f.ruler === 'nvfp4';
       if (scalePlate.visible) {
         scalePlate.position.set(WX, hW + UNIT * 0.25 + 0.02, 0);
-        scalePlate.scale.set(2.3, UNIT * 0.5, 1.6);
-        blockLabel.position.set(WX + 1.55, hW + 0.16, 0.55);
+        scalePlate.scale.set(2.1, UNIT * 0.5, 1.6);
+        blockLabel.position.set(WX + 1.4, hW + 0.16, 0.55);
       }
       blockLabel.visible = scalePlate.visible;
 

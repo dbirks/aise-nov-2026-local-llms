@@ -40,7 +40,7 @@ export default function build(scene, emit) {
       line([[-1.05, y + 0.31, 0], [-1.05, y + 0.48, 0], [3.45, y + 0.48, 0], [3.45, y + 0.31, 0]], row);
       label(r === 1 ? 'bidirectional block' : r === 2 ? 'parallel + head' : 'parallel + selector', 1.2, y - 0.44, 0.46, row);
     }
-    if (r === 3) label('no paper · version-dependent', 1.2, y - 0.94, 0.45, row);
+    if (r === 3) { label('no paper', -1.0, y - 0.94, 0.45, row); label('version-dependent', 1.95, y - 0.94, 0.45, row); }
   });
   return {
     view: { target: [-0.20, -0.05, 0], radius: 40, theta: 0, phi: Math.PI / 2, size: 3.4 },

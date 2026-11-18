@@ -18,7 +18,7 @@ const sum = a => a.reduce((t, n) => t + n, 0);
 const trim3 = v => v.toFixed(3).replace(/\.?0+$/, '').replace(/^-?$/, '0');
 
 const X = [-2.1, -0.68, 0.74, 2.16];    // weight columns
-const XT = 3.05;                        // stacked-total towers
+const XT = 2.9;                         // stacked-total towers
 const ZB = -1.1, ZF = 1.1;              // back = plain rounding, front = tuned rounding
 const F = 4.5;                            // world units per unit of output error
 const DUR = [3.5, 2.5, 3, 1];           // beats: plain → weight 1 flips → totals settle → hold
@@ -79,7 +79,7 @@ export default function build(scene, emit) {
   const totB = label('0.224', XT, 2.05, ZB, 0.39);
   const totF = label('0.224', XT, 1.5, ZF, 0.39);
   const flipLab = label('flipped', X[FLIP], 0.3, ZF, 0.39);
-  label('bar height = error × input\ntoy row · s = 0.20', 0.25, -2.1, 0, 0.78);
+  label('bar height = error × input\ntoy row · s = 0.20', 0.25, -2.25, 0, 0.78);
   flipLab.visible = false;
 
   function showInputs() {
