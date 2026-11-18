@@ -152,7 +152,8 @@ const SECTIONS: { title: string; slides: Slide[] }[] = [
 ];
 
 const deck: Slide[] = [
-  TITLE,
+  // title-slide contents list, built from SECTIONS so it always matches the dividers
+  { ...TITLE, chapters: SECTIONS.map((sec, i) => [String(i + 1).padStart(2, '0'), sec.title] as [string, string]) } as Slide,
   ...SECTIONS.flatMap((sec, i) => {
     const n = String(i + 1).padStart(2, '0');
     const divider: Slide = { id: `ch${n}`, type: 'section', header: ['', ''], number: n, title: sec.title, framing: '' };
