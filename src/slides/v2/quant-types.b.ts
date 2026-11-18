@@ -10,7 +10,7 @@ export const slides: Slide[] = [{
   chip: chip(4),
   caption: {
     title: 'Three separate dials',
-    body: 'Weights, activations and the KV cache each get their own precision. A 4-bit model can still keep its cache at 16 or 8 bits.',
+    body: 'Weights, activations, and the KV cache each get their own precision. A 4-bit model can still keep its cache at 16 or 8 bits.',
   },
   controls: [
     {

@@ -9,7 +9,7 @@ export function TitleLayout({ slide }: SlideProps<TitleSlide>) {
         <span>{slide.header[0]}</span>
         <span>{slide.header[1]}</span>
       </div>
-      <div className="sl-title-headline">
+      <div className="sl-title-headline" style={slide.headlineSize ? { fontSize: slide.headlineSize } : undefined}>
         {lines.map((line, i) => (
           <span key={i}>
             {line}

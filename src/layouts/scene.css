@@ -35,6 +35,15 @@
   pointer-events: auto;
 }
 
+.sc-page {
+  position: absolute;
+  right: 128px;
+  top: 88px;
+  font-size: 38px;
+  background: var(--bg);
+  padding: 6px 14px;
+}
+
 .sc-card {
   position: absolute;
   left: 96px;

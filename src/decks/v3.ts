@@ -28,12 +28,13 @@ const ids = (n: number, ...keys: string[]): Slide[] =>
       return out as Slide;
     });
 
-export const slides: Slide[] = [
+const deck: Slide[] = [
   {
     id: 'title',
     type: 'title',
-    header: ['Engineering Local LLM Inference', 'AISE · November 2026'],
+    header: ['', 'AISE · November 2026'],
     headline: 'Configuring\nLocal LLMs',
+    headlineSize: 215,
     // short labels so the list fits beside the headline; full questions are on the dividers
     chapters: [
       ['01', 'Why run a local model?'],
@@ -68,3 +69,14 @@ export const slides: Slide[] = [
   ...ids(9, 'close', 'qa'),
 ];
 
+
+/** Page numbers in the top-right header ("12 / 64"), list rows marked with squares instead of 01, 02. */
+export const slides: Slide[] = deck.map((s, i) => {
+  if (s.type === 'title') return s;
+  const out = { ...s } as Slide & { header?: [string, string] };
+  const page = `${i + 1} / ${deck.length}`;
+  if (out.header) out.header = [out.header[0], page];
+  else out.page = page;
+  if (out.type === 'list') out.marker = 'square';
+  return out as Slide;
+});

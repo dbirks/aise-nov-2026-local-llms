@@ -99,6 +99,7 @@ export function SceneLayout({ slide, active, pixelOpts, onStepKey, thumb }: Slid
         : <div className="sc-canvas" ref={ref} />}
 
       <div className="sc-chip">{slide.chip}</div>
+      {slide.page && <div className="sc-page">{slide.page}</div>}
 
       <div className="sc-card">
         <div className="sc-title">{slide.caption.title}</div>

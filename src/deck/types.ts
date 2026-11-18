@@ -30,6 +30,8 @@ interface SlideBase {
   example?: boolean;
   /** speaker notes (shown in the presenter overlay, never on the slide) */
   notes?: string;
+  /** page number shown on scene slides, e.g. "12 / 64" (other layouts use header[1]) */
+  page?: string;
   /** one of several candidate builds of the same slide; renders a big A/B/C badge top-left */
   variant?: 'A' | 'B' | 'C';
 }
@@ -43,6 +45,8 @@ export interface TitleSlide extends SlideBase {
   headline: string;
   /** numbered chapter list on the right, e.g. [['01','Choose a model'], ...] */
   chapters: [string, string][];
+  /** headline font size in px (default 250) */
+  headlineSize?: number;
 }
 
 /** B · Section divider */
@@ -89,6 +93,8 @@ export interface ListSlide extends SlideBase {
   header: [string, string];
   title: string;
   items: string[];
+  /** row marker: '01', '02' … (default) or a small square */
+  marker?: 'number' | 'square';
 }
 
 /** How a splat asset was made. Rendered as a "SPLAT LAB" tag on the slide so every experiment is labelled. */

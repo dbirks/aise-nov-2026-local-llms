@@ -10,7 +10,7 @@ export const slides: Slide[] = [{
   chip: chip(10),
   caption: {
     title: "Which trade-offs fit your hardware and your work?",
-    body: "There’s no best setup, only the one that fits your models, your hardware and what you run on it.",
+    body: "There’s no best setup, only the one that fits your models, your hardware, and what you run on it.",
   },
   notes: "v2 close · reuses v1 A03. " + (v1.notes ?? ''),
 } as Slide];

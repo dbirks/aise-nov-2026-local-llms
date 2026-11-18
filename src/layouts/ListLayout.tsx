@@ -12,7 +12,9 @@ export function ListLayout({ slide }: SlideProps<ListSlide>) {
       <div className="sl-list-items">
         {slide.items.map((item, i) => (
           <div key={i} className="sl-list-row">
-            <span className="sl-list-num">{String(i + 1).padStart(2, '0')}</span>
+            {slide.marker === 'square'
+              ? <span className="sl-list-square" aria-hidden />
+              : <span className="sl-list-num">{String(i + 1).padStart(2, '0')}</span>}
             <span>{item}</span>
           </div>
         ))}

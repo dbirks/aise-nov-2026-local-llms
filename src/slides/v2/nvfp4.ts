@@ -10,7 +10,7 @@ export const slides: Slide[] = [{
   chip: chip(4),
   caption: {
     title: 'How NVFP4 packs a block',
-    body: 'Sixteen numbers share one 8-bit scale, and each number keeps just 4 bits: a sign, two exponent bits and one mantissa bit. With the scale that comes to 4.5 bits per weight.',
+    body: 'Sixteen numbers share one 8-bit scale, and each number keeps just 4 bits: a sign, two exponent bits, and one mantissa bit. With the scale that comes to 4.5 bits per weight.',
   },
   controls: [{
     kind: 'choice',

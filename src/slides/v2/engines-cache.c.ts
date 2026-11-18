@@ -10,7 +10,7 @@ export const slides: Slide[] = [{
   chip: chip(6),
   caption: {
     title: 'Same prompts, different bookkeeping',
-    body: 'One stream of requests, three ways to index it. What gets reused depends on block edges, tree branches or which slot you land on.',
+    body: 'One stream of requests, three ways to index it. What gets reused depends on block edges, tree branches, or which slot you land on.',
   },
   controls: [
     {

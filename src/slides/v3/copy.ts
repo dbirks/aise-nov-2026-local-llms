@@ -12,7 +12,7 @@ export interface Patch {
 export const COPY: Record<string, Patch> = {
   // 00 — Opening
   open: {
-    title: 'A grab bag of local LLM terms, tips and settings',
+    title: 'A grab bag of local LLM terms, tips, and settings',
     items: [
       'A few definitions, settings I’ve found useful, and things I’ve picked up along the way.',
       'Roughly in the order I learned them, with examples from llama.cpp and vLLM.',
@@ -70,7 +70,7 @@ export const COPY: Record<string, Patch> = {
   engines: {
     title: 'An inference engine runs the model',
     items: [
-      'llama.cpp, vLLM and SGLang are engines that load weights and compute responses. Ollama makes local models easier to download and run.',
+      'llama.cpp, vLLM, and SGLang are engines that load weights and compute responses. Ollama makes local models easier to download and run.',
       'GGUF and safetensors are file formats for storing model tensors. They’re not inference engines.',
     ],
   },

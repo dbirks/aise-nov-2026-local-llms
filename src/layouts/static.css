@@ -151,6 +151,14 @@
   padding-bottom: 14px;
 }
 .sl-list-num { width: 90px; color: var(--ink); }
+/* square marker: one pixel-block, centred on the first line (56px × 1.35 line height) */
+.sl-list-square {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 27px 20px 0 0;
+  background: var(--ink);
+}
 
 /* EXAMPLE tag */
 .sl-example {
