@@ -8,7 +8,74 @@ Assume the audience has already run a model with **Ollama or LM Studio**. The in
 
 The talk is intended to be a **rapid, interactive tour through detailed 3D visualizations**. The presenter may spend 15 seconds on one scene and dive into another. Graphics must represent real mechanisms faithfully—not metaphors or decorative 3D.
 
-## Working presentation structure
+## Preferred presentation direction — learn by making local models useful (2026-11-17)
+
+> **Current strongest candidate: a loosely autobiographical engineering journey, not a chronological documentary or a grab bag of terms.** This reflects the speaker's explicit preference after reviewing four outline concepts. The existing title *Beyond "It Runs"* is **just a placeholder**; speaker is not attached to it. This is a 30-minute, visually driven 201-level meetup talk. The *current \`src/slides.ts\` pages are mostly visual/style experiments and do not determine the talk plan*. The speaker **will not use speaker notes**: retain detailed planning/reference information here, and put memorable concise copy and accurate 3D visualizations in the presentation itself.
+
+### The framing
+
+The speaker was initially satisfied experimenting with Ollama, but then encountered models that made agent work feel dependable enough to use regularly. They began asking, in roughly this order: *What can I fit? How much VRAM do I need? Can I squeeze in a better quant and more context? Can I run multiple agents? What really makes inference faster? Which backend should I use?* This progression **wasn't actually linear**; the story can revisit earlier topics as necessary.
+
+**A plausible opening in the speaker's own voice (editable, not a literal script):**
+
+> "I've spent the last several months playing with local models and gradually turning them into something I can depend on. I ended up with a collection of configurations, mistakes, tricks and rabbit holes. Rather than just showing flags, I'm going to walk through those roughly in the order I encountered them—and try to visualize what the machine is actually doing."
+
+The speaker's trust threshold with Qwen3.6-27B / later Qwen3.8, reliable tool decisions, Kubernetes investigations and remembered Git operations is a useful motivation. The speaker also uses hosted AI services; running locally is partly about fun, control/independence and having alternatives, not asserting a market crash as fact. Do not claim local inference always wins on cost or autonomy.
+
+### Loose story arc (a navigation aid, **not** a required slide list)
+
+1. **It became worth doing:** a model finally made trustworthy decisions in real workflows; why local inference matters to the speaker. Personal use of hosted services remains part of the story.
+2. **What will fit on my card?** Speaker decided they needed roughly a **32 GB VRAM card** for the workload they wanted (ask which model/hardware led to that conclusion). Start with \`llama.cpp\`, settings learned from community configs, and the difference between fitting weights and leaving context/workspace headroom. Explain **dense vs MoE**, the meaning of **35B-A3B**, selective **MoE CPU offload**, GPU residency, and choosing a quantization. **Engram/PLE on NVMe is a later "new developments" subsection**, not the main explanation of MoE offloading.
+3. **Can I give it more context?** KV cache, context limits, KV precision (FP8/NVFP4), what cache entries actually store, and why reducing weight or KV bytes can allow longer or more concurrent contexts. Use one genuine before/after configuration when possible.
+4. **Can I run multiple agents?** Serial versus parallel sequences, separate replicas, prefills versus decodes, GPU compute and bandwidth, long system/tool prefixes, vLLM hashed shared blocks versus SGLang radix tree versus llama.cpp prompt/slot reuse. Real prefix eviction/TTFT problems are better than invented measurements. An early \`llama.cpp\` memory-fit win and later \`vLLM\` scheduling/concurrency win do not imply a universal winner.
+5. **Can I speed up generation?** Show what passes through the model on each new token and why low-batch decode is often weight-bandwidth-limited. Then show MTP, EAGLE-3, DFlash, DSpark, DFlash2 (only as much technical detail as fits). A drafter consumes **additional VRAM**, sometimes reducing valuable KV capacity. Model creators increasingly ship purpose-matched drafters. Speaker's **DSpark training** experience is a first-person digression, including data generation, rotary/serve mismatches, held-out evaluation and the conclusion that more agentic data alone did not rescue the tested from-scratch run.
+6. **What else can we do now?** Recent design patterns: DeepSeek Engram and Qwen PLE n-gram tables, Pennyroyal's specific NVMe row lookups; specialized runtimes NInfer, Radiance, Pennyroyal on appropriate GPUs and workloads. Distinguish CPU-offloaded **MoE expert computation** from SSD-backed **learned embedding-row lookup**. The **LLM Collective** can be a short optional endcap: independently hosted model endpoints connected to a gateway, often via **outbound-initiated connections** when inbound VPN access is unavailable; verify the actual implementation before drawing protocol/network architecture. It is not pooled VRAM or distributed inference.
+
+**Organizing rule:** each section starts with a *real engineering question*, not a glossary heading. Show the actual configuration/measurement that prompted the question → explain the underlying mechanism in a precise short visual → return to its practical consequences. A config can appear inside the relevant topic, but **don't lead with a comprehensive YAML flag-by-flag lecture**. Only two or three mechanisms should receive true multi-minute deep dives; others can be 15–30 second scenes. If a scene does not help answer a genuine question, cut it.
+
+**Repeated through-line:** "Every choice buys something by spending something else: VRAM capacity, memory bandwidth, compute, latency, cache retention, quality, flexibility or engineering effort." This is a **unifying lens**, not necessarily the title or the presentation order.
+
+### Teaching style contract: ordinary words first, precise term second, literal mechanism third
+
+Speaker's explicit preference:
+
+- Avoid a sudden avalanche of unexplained specialist terms and acronym lists.
+- Avoid **misleading fruit/store or other distant allegories**. Everyday wording is welcome, but the diagram should represent actual weights, tensor operations, caches, routing or storage paths rather than a unrelated metaphor.
+- **Name the thing in plain language**, then introduce the proper term, then render the calculation/data movement, then state why the audience should care. Example: "We keep the earlier attention results so we don't have to calculate them again. Those are the *keys and values*, and this is the *KV cache*."
+- Favor **high-fidelity 3D visual explanations** that the presenter can point into, step, rotate and revisit. Mathematical accuracy matters more than decorative geometry. Label axes, units and what each vertex/object represents. A helpful scene may show an actual high-dimensional process **projected** into 3D; label the projection as such.
+- The speaker is openly still learning about kernels/SMs and detailed inference math. Acknowledge that accurately without implying all kernels behave alike; separate well-verified mechanics from measured behavior and from personal hypotheses.
+- **Tie abstractions back to coding-agent workloads**, including multi-turn tool use, large tool/system prefixes, SWE tasks and cache eviction. Avoid claims that a particular 3D "semantic direction" means one same thing across all layers or models.
+
+#### Exact example: how to teach **quantization** without subtly teaching the wrong thing
+
+**Plain-language sentence:** "The model is mostly learned tables of numbers. We can represent many of those numbers using fewer bits, trading some numerical accuracy for smaller model weights and possibly faster memory transfers. That's *weight quantization*."
+
+1. **Show real structure:** token ID selects a learned initial embedding vector; hidden-state vectors are repeatedly transformed by learned **weight matrices** in attention and feed-forward networks. It is usually the **numbers inside those matrices** that are quantized in weight-only schemes—**not** an entire semantic embedding-space vector being directly rounded at the last moment.
+2. **Show real representation error:** a high-precision weight number \`w\` maps to one of a finite set of representable levels, often after applying a per-group scale/zero point; \`w_hat = scale * (round(w/scale) - zero_point)\` is a schematic symmetric/asymmetric INT-style example. **Four-bit INT** has only 16 code values per scaled group; **NVFP4** is a *different microscaled floating-point* representation, not "four decimal places" and not interchangeable with INT4. The model's computed outputs can shift because the matrix product uses slightly different weights.
+3. **Visualize the consequence, not a fiction:** choose a small explicitly *illustrative* matrix \`W\` and hidden-state input \`h\`, show \`W·h\` before quantization and \`W_q·h\` after. Their output arrows point slightly different ways in the 3D projected view. Annotate "toy 3D projection of derived activations; actual model lives in thousands of dimensions." This is more rigorous than saying quantization "blurs king towards queen".
+4. **Context matters:** the token ID's **initial embedding** is not the same as its **contextual hidden state** after attention/layer processing. A causal decoder attends to the current and prior positions (not future positions). The famous king/man/woman/queen word-vector arithmetic is a historical illustration, not an exact law for contextual representations or a valid model-performance benchmark. A phrase's "meaning" is not a single guaranteed 3D point.
+5. **What preserves quality?** There are multiple approaches. Simple rounding with scaled groups; more sophisticated **post-training quantization (PTQ)** uses calibration examples/activations to choose scales or rounding that better preserve layer outputs; **AutoRound** optimizes rounding/clipping against block reconstruction errors. **Mixed precision** deliberately leaves sensitive layers, heads, experts or projections at higher precision rather than randomly quantizing weights. **Evaluation** after quantization measures coding, tool-use, long-context or other real-task quality. Calibration and evaluation are different: using a representative calibration set is not the same as "run a coding benchmark and automatically undo the bits that failed".
+6. **Tie to user's deployment:** **W4A16** is 4-bit weights with 16-bit activations on relevant operations. **NVFP4/W4A4** uses a low-precision weight-and-activation path on supported Blackwell kernels. Your Qwen3.8 AutoRound experiments intentionally excluded sensitive recurrent-control projections, vision tower and MTP head; these illustrate **selective precision**, not indiscriminate compression. Reducing model-weight memory may create extra room for **KV cache / longer contexts / more agents**, which is the story's immediate payoff.
+
+Research anchors to preserve in the implementation: [Hugging Face quantization concepts](https://huggingface.co/docs/transformers/quantization/concept_guide), [Intel AutoRound docs](https://github.com/intel/auto-round/blob/main/docs/step_by_step.md), [AutoRound/LLM Compressor algorithm explanation](https://docs.vllm.ai/projects/llm-compressor/en/stable/examples/autoround/), [speaker's actual Qwen3.8 AutoRound model-card recipe](https://github.com/dbirks/home-k8s/blob/main/apps/qwen38-upload.yaml.hold), and the already collected notes about KV cache, mixed format, prompt sharing and hybrid attention.
+
+#### One possible **30-second quantization scene**, not an already-approved slide
+
+- Frame 0: a **matrix** of high-precision weights and a thin hidden-state vector, with computed output direction in a labeled *toy 3D* projection.
+- Frame 1: choose 4-bit INT/group scales; the matrix entries snap to nearby representable levels and a second output arrow shifts. Difference vector = reconstruction effect. **Do not animate "king/queen semantic points" as though they are the literal quantized weights**.
+- Frame 2: use a few calibration inputs; optimize per-group rounding/scale; output error shrinks for those inputs. Then test on a separate held-out coding/tool-use workload; changing calibration does not guarantee accuracy on every task.
+- Frame 3: lock a sensitive projection at BF16 while other matrices stay low-bit; display bytes saved and changed output error. Reveal the reclaimed GPU-memory region labeled **KV cache headroom**.
+- Controls: input vector, precision/scheme (BF16 / INT4 W4A16 / NVFP4 W4A4 only with explicitly supported GPU), group scale, layer selected, mixed-precision exclusion. The 3D projection is illustrative, not a claim that a hidden state always has an interpretable semantic axis.
+
+### Unanswered questions with the greatest planning leverage
+
+1. **First 32 GB memory decision:** which specific model, quantization/context target and machine made the speaker conclude they needed **32 GB**? The answer could anchor the entire opening hardware memory-budget scene.
+2. **Concrete good/bad quantization example:** which model did the speaker compare in two actual quantizations with noticeably different coding-agent behavior? Source a real before/after rather than invent a semantic degradation story.
+3. **Narrative ending:** should the talk close with specialized serving-engine discoveries, a "what's new" Engram montage, or the LLM Collective as a brief independent-host networking idea? All are plausible; none is mandated yet.
+4. **Technical depth:** how many optional deep dives can fit in 30 minutes? Keep navigation nonlinear and audience-facing text sparse.
+
+
+## Earlier five-stage topical skeleton (provisional, not the preferred narrative)
 
 1. **Choose** — recent local model capabilities; dense vs. MoE; architecture and quality tradeoffs.
 2. **Fit** — weight quantization, GPU/CPU residency, context, KV cache and hybrid-model state.
