@@ -29,7 +29,7 @@ export default function build(scene, emit) {
   box(xs[4], -0.7, 0.8, 0.45, 0.5, mid);
   label('convert (#72)', xs[4], -1.4, 0.26);
   box(xs[5] - 0.3, -0.7, 0.52, 0.55, 0.5); box(xs[5] + 0.35, -0.7, 0.38, 0.38, 0.5, mid);
-  label('target + draft', xs[5] + 0.4, -1.75, 0.26);
+  // (serve station = target box + smaller draft box; no extra label — it collided with the timeline)
   const packet = box(xs[0], -0.9, 0.15, 0.15, 0.18);
   label('reference tokens', -0.35, 2.55, 0.34); label('draft slots', -0.35, 1.95, 0.34);
   const slots = [], links = [];
