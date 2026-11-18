@@ -141,7 +141,7 @@ export function SceneLayout({ slide, active, pixelOpts, onStepKey, thumb }: Slid
           </div>
         )}
 
-        {!thumb && <div className="sc-readout">{line ? `simulated · ${line}` : 'simulated · initialising…'}</div>}
+        {!thumb && <div className="sc-readout">{line ? (/^(simulated|speaker|spec|mechanism|measured)\b/.test(line) ? line : `simulated · ${line}`) : 'simulated · initialising…'}</div>}
       </div>
 
       <div className="sc-hint">{slide.hint ?? '← → step · drag to orbit'}</div>

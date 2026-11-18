@@ -5,9 +5,9 @@ export default function build(scene, emit) {
   const root = new THREE.Group(); scene.add(root);
   const out = emitter(emit), dark = lam(0x222222), faint = new THREE.LineBasicMaterial({ color: 0x888888 }), ink = new THREE.LineBasicMaterial({ color: 0x222222 });
   const dynamic = new THREE.Group(); root.add(dynamic);
-  let bits = 16, playing = true, clock = 0, time = 0, data, arrows = [];
+  let bits = 4, playing = true, clock = 0, time = 0, data, arrows = [];
   const choices = [16, 8, 4, 3, 2];
-  function label(text, x, y, z, height = 0.34, parent = root) {
+  function label(text, x, y, z, height = 0.44, parent = root) {
     const c = document.createElement('canvas'), g = c.getContext('2d'); g.font = 'bold 72px monospace'; c.width = Math.ceil(g.measureText(text).width) + 20; c.height = 92;
     g.font = 'bold 72px monospace'; g.fillStyle = '#111'; g.textBaseline = 'middle'; g.fillText(text, 10, 46);
     const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthTest: false })); s.scale.set(height * c.width / c.height, height, 1); s.position.set(x,y,z); s.renderOrder = 10; parent.add(s); return s;
@@ -37,7 +37,7 @@ export default function build(scene, emit) {
     });
   }
   rebuild();
-  return { view: { target:[0,0,0], radius:40, theta:0.5, phi:1.15, size:4.6 },
+  return { view: { target:[0,0,0], radius:40, theta:0.5, phi:1.15, size:3.3 },
     update(dt) {
       time += dt; if (playing && (clock += dt) >= 2.5) { clock = 0; bits = choices[(choices.indexOf(bits)+1)%choices.length]; rebuild(); }
       for (const a of arrows) {

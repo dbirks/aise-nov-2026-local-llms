@@ -4,8 +4,8 @@ import { WORDS, quantizeWords } from './_words.js';
 export default function build(scene, emit) {
   const root = new THREE.Group(); scene.add(root); const dynamic = new THREE.Group(); root.add(dynamic);
   const out = emitter(emit), ink = new THREE.LineBasicMaterial({color:0x222222}), solid = lam(0x222222);
-  const choices = [16,8,4,3,2]; let bits=16, word='Germany', playing=true, clock=0, data;
-  function label(text,x,y,z,h=0.34,parent=root) {
+  const choices = [16,8,4,3,2]; let bits=4, word='Germany', playing=true, clock=0, data;
+  function label(text,x,y,z,h=0.42,parent=root) {
     const c=document.createElement('canvas'), g=c.getContext('2d'); g.font='bold 72px monospace'; c.width=Math.ceil(g.measureText(text).width)+20; c.height=92; g.font='bold 72px monospace'; g.fillStyle='#111'; g.textBaseline='middle'; g.fillText(text,10,46);
     const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthTest:false})); s.scale.set(h*c.width/c.height,h,1); s.position.set(x,y,z); s.renderOrder=10; parent.add(s); return s;
   }
@@ -30,7 +30,7 @@ export default function build(scene, emit) {
     label(word,0,2.5,0,0.4,dynamic);
   }
   rebuild();
-  return { view:{target:[0,-0.25,0],radius:40,theta:0,phi:Math.PI/2,size:4.4},
+  return { view:{target:[0,-0.25,0],radius:40,theta:0,phi:Math.PI/2,size:3.2},
     update(dt) { if(playing && (clock+=dt)>=2.5){clock=0;bits=choices[(choices.indexOf(bits)+1)%choices.length];rebuild();} const i=WORDS.findIndex(w=>w.word===word), v=WORDS[i].v[0], q=data.words[i];
       out({playing,readout:bits===16?`simulated · ${word} · 16 bits · x ${v.toFixed(2)} · original`:`simulated · ${word} · ${bits} bits · x ${v.toFixed(2)} → ${q.q[0]} × ${data.scale.toFixed(3)} = ${q.v[0].toFixed(2)}`}); },
     action(name,arg) { if(name==='play') playing=typeof arg==='boolean'?arg:!playing; else if(name==='step'){bits=choices[(choices.indexOf(bits)+(Number(arg)<0?-1:1)+choices.length)%choices.length];clock=0;rebuild();} else if(name==='bits' && choices.includes(Number(arg))){bits=Number(arg);playing=false;clock=0;rebuild();} else if(name==='word' && WORDS.some(w=>w.word===arg)){word=arg;rebuild();} }
