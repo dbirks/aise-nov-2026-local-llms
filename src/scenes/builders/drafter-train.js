@@ -18,7 +18,7 @@ export default function build(scene, emit) {
   };
   const xs = [-3.0, -1.8, -0.6, 0.6, 1.8, 3.0];
   const names = ['trajectories', 'rollouts', 'hidden states', 'train', 'convert', 'serve (vLLM)'];
-  names.forEach((n, i) => label(n, xs[i], i % 2 === 0 ? 0.8 : 0.3, 0.28));  // two staggered rows above the stations
+  names.forEach((n, i) => label(n, xs[i], i % 2 === 0 ? 1.1 : 0.55, 0.36));  // two staggered rows above the stations
   box(0, -1.05, 7.2, 0.08, 1.2, mid);
   for (let j = 0; j < 3; j++) box(xs[0] + j * 0.08, -0.76 + j * 0.12, 0.8, 0.08, 0.6, dark);
   box(xs[1], -0.65, 1, 0.65, 0.55); label('target', xs[1], -0.65, 0.22).material.color.setHex(0xffffff);
@@ -27,11 +27,11 @@ export default function build(scene, emit) {
   box(xs[3], -0.7, 0.7, 0.52, 0.5);
   const ring = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.045, 6, 20, Math.PI * 1.5), mid); ring.position.set(xs[3], -0.7, 0.4); scene.add(ring);
   box(xs[4], -0.7, 0.8, 0.45, 0.5, mid);
-  label('convert (#72)', xs[4], -1.35, 0.23);
+  label('convert (#72)', xs[4], -1.4, 0.26);
   box(xs[5] - 0.3, -0.7, 0.52, 0.55, 0.5); box(xs[5] + 0.35, -0.7, 0.38, 0.38, 0.5, mid);
-  label('target + draft', xs[5], -1.35, 0.23);
+  label('target + draft', xs[5] + 0.4, -1.75, 0.26);
   const packet = box(xs[0], -0.9, 0.15, 0.15, 0.18);
-  label('reference tokens', 2.3, 2.85, 0.32); label('draft slots', 2.3, 1.02, 0.36);
+  label('reference tokens', -0.35, 2.55, 0.34); label('draft slots', -0.35, 1.95, 0.34);
   const slots = [], links = [];
   for (let i = 0; i < 6; i++) {
     const x = 0.8 + i * 0.6;
@@ -50,13 +50,13 @@ export default function build(scene, emit) {
   issues.forEach((n, i) => {
     const x = -3.15 + i * 1.05;
     ticks.push(box(x, -2.25, 0.07, 0.25, 0.1, mid));
-    label('#' + n, x, -2.58, 0.26);
+    label('#' + n, x, -2.6, 0.32);
     details.push(label(topics[i], x, -1.91, 0.22));
   });
   const figures = [label('546k rows · 2d16h', 1.6, -3.0, 0.26), label('215,154 rows · 1.617', 2.2, -3.35, 0.26), label('baseline ~1.66', 2.2, -3.7, 0.26)];
   let mode = 'teacher', stage = 'pipeline', playing = true, time = 0, step = false, displayed = 0;
   return {
-    view: { target: [0.1, -0.4, 0], radius: 40, theta: 0.05, phi: 1.15, size: 3.7 },
+    view: { target: [0.1, -0.4, 0], radius: 40, theta: 0.05, phi: 1.15, size: 3.45 },
     update(dt) {
       if (step) { time = (Math.floor(time) + 1) % 10; step = false; playing = false; }
       if (playing) time = (time + dt) % 10;
