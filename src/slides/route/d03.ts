@@ -4,7 +4,7 @@ import { meta } from './_meta';
 
 export const slide: Slide = {
   id: 'd03', type: 'scene', scene: 'prefix-match', chip: chip(3),
-  caption: { title: 'Same first tokens, reused work', body: 'If a new request starts with exactly the same tokens as an earlier one, the server can reuse that work instead of recomputing it: prefix caching. One changed token early on ends the match there.' },
+  caption: { title: 'Same first tokens, reused work', body: 'If a request starts with the same tokens as an earlier one, the server reuses that work: prefix caching. One early change ends the match.' },
   controls: [
     { kind: 'choice', action: 'change', label: 'request B differs at', options: [{ label: 'nowhere', value: -1 }, { label: 'token 3', value: 3 }, { label: 'token 9', value: 9 }], initial: -1 },
     { kind: 'toggle', action: 'evict', label: 'evicted', initial: false },

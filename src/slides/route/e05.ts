@@ -4,7 +4,7 @@ import { meta } from './_meta';
 
 export const slide: Slide = {
   id: 'e05', type: 'scene', scene: 'drafter-train', chip: chip(4),
-  caption: { title: 'Training my own drafter', body: 'I tried training a DSpark draft model: record the big model’s answers and hidden states, train a small model to predict them, then serve it. Training scores looked fine; served acceptance barely moved.' },
+  caption: { title: 'Training my own drafter', body: 'I trained a DSpark draft model on the big model’s outputs and hidden states. Training scores looked fine; served acceptance barely moved.' },
   controls: [
     { kind: 'choice', action: 'mode', label: 'evaluated', options: [{ label: 'teacher-forced', value: 'teacher' }, { label: 'free-running', value: 'free' }], initial: 'teacher' },
     { kind: 'choice', action: 'stage', label: 'show', options: [{ label: 'pipeline', value: 'pipeline' }, { label: 'results', value: 'results' }], initial: 'pipeline' },
