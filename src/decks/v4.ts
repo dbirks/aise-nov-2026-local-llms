@@ -5,6 +5,10 @@ import type { Slide } from '../deck/types';
 // Served at the root and at /4/. Archives: v3 /3/, v2 /2/, v1 /1/.
 // List lines are phrases: no full stop at the end, Oxford comma.
 
+/** A heading with optional phrase bullets (header and page number are filled in below). */
+const page = (id: string, title: string, items: string[]): Slide =>
+  ({ id, type: 'list', header: ['', ''], title, items });
+
 const TITLE: Slide = {
   id: 'title',
   type: 'title',
@@ -31,6 +35,16 @@ const SECTIONS: { title: string; slides: Slide[] }[] = [
         subs: { 0: ['GitHub Copilot switching from request-based to usage-based billing'] },
         notes: 'evidence: SPEAKER OPINION (line 2). Copilot moved to token-based GitHub AI Credits from 2026-06-01 (github.blog, 2026-04-27).',
       },
+      page('stability', 'Stability', [
+        'The quantization level won’t switch out from underneath you',
+        'Theoretically less downtime',
+      ]),
+      page('fun', 'Fun', []),
+      page('hosted-good', 'Hosted models are really good', [
+        'Subscriptions are a great deal right now',
+        'They’re called frontier models for a reason',
+      ]),
+      page('largest', 'The largest model isn’t always necessary', []), // bullets to come
     ],
   },
   { title: 'Getting started', slides: [] },
